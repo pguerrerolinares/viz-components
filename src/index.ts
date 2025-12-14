@@ -1,0 +1,39 @@
+/**
+ * @pguerrero/viz-components
+ * Framework-agnostic Web Components library for data visualization
+ * Built with Lit and Highcharts
+ */
+
+// Export base component
+export { VizBaseComponent } from './base/viz-base-component.js';
+
+// Export types
+export type {
+  ChartType,
+  ChartSeries,
+  ChartData,
+  ChartConfig,
+  DashboardLayout,
+  DashboardConfig,
+  WidgetConfig,
+  TableColumn,
+  TableConfig,
+  HeatmapDataPoint,
+  HeatmapConfig,
+  TreemapNode,
+  TreemapConfig,
+  ThemeColors,
+  VizChartEvent,
+  VizTableEvent,
+} from './types/index.js';
+
+// Export components (will be added as we implement them)
+// export { VizChart } from './components/chart/viz-chart.js';
+// export { VizDashboard } from './components/dashboard/viz-dashboard.js';
+// export { VizWidget } from './components/dashboard/viz-widget.js';
+// export { VizTable } from './components/table/viz-table.js';
+// export { VizHeatmap } from './components/advanced/viz-heatmap.js';
+// export { VizTreemap } from './components/advanced/viz-treemap.js';
+
+// Library version
+export const VERSION = '0.1.0';
