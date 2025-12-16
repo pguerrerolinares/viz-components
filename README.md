@@ -70,6 +70,73 @@ Pass any [Highcharts options](https://api.highcharts.com/highcharts/) via the `c
 ></viz-chart>
 ```
 
+### viz-stock-chart
+
+Real-time candlestick chart with OHLC data and volume.
+
+```html
+<viz-stock-chart
+  data='[{"time": 1702900800000, "open": 100, "high": 105, "low": 98, "close": 103, "volume": 1000000}]'
+  config='{"symbol": "AAPL", "currency": "$", "showVolume": true, "realtime": true}'
+  theme="auto"
+></viz-stock-chart>
+```
+
+**Attributes:**
+- `data` - JSON array of OHLC data points with `time`, `open`, `high`, `low`, `close`, `volume`
+- `config` - JSON object with:
+  - `symbol` - Stock symbol to display
+  - `currency` - Currency symbol (default: "$")
+  - `showVolume` - Show volume bars (default: true)
+  - `realtime` - Enable simulated real-time updates (default: false)
+  - `realtimeInterval` - Update interval in ms (default: 1000)
+  - `highcharts` - Pass-through Highcharts options
+- `theme` - Theme mode: `light`, `dark`, or `auto`
+
+**Events:**
+- `price-update` - Fired on real-time price updates with `{ detail: { time, open, high, low, close, volume, change, changePercent } }`
+
+**Methods:**
+- `addPoint(point)` - Add a new OHLC data point
+- `setData(data)` - Replace all data
+
+### viz-stock-evolution
+
+Historical stock evolution chart with market event markers.
+
+```html
+<viz-stock-evolution
+  config='{"symbol": "S&P 500", "currency": "$", "showEvents": true, "showVolume": false}'
+  theme="auto"
+></viz-stock-evolution>
+```
+
+**Attributes:**
+- `prices` - JSON array of price points with `time`, `price`, `volume`
+- `events` - JSON array of market events with `date`, `title`, `description`, `type`
+- `config` - JSON object with:
+  - `symbol` - Symbol name to display
+  - `currency` - Currency symbol (default: "$")
+  - `showEvents` - Show event markers (default: true)
+  - `showVolume` - Show volume bars (default: false)
+  - `areaColor` - Color for the area fill
+  - `eventColors` - Custom colors per event type
+  - `highcharts` - Pass-through Highcharts options
+- `theme` - Theme mode: `light`, `dark`, or `auto`
+
+**Event Types:**
+- `crash` - Market crash (red)
+- `rally` - Market rally (green)
+- `policy` - Policy change (amber)
+- `crisis` - Crisis event (dark red)
+- `milestone` - Market milestone (blue)
+
+**Methods:**
+- `setData(prices, events?)` - Set price and event data
+- `addEvent(event)` - Add a new market event
+
+**Note:** If no data is provided, sample S&P 500 historical data (2000-2024) is loaded automatically for demonstration.
+
 ### viz-dashboard
 
 Grid layout container for widgets.
@@ -206,6 +273,8 @@ viz-table::part(filter-input) {
 | Component | Parts |
 |-----------|-------|
 | viz-chart | `chart` |
+| viz-stock-chart | `header`, `symbol`, `price`, `change`, `live-indicator`, `chart` |
+| viz-stock-evolution | `header`, `symbol`, `price`, `change`, `info`, `chart`, `modal-overlay`, `modal` |
 | viz-dashboard | `dashboard` |
 | viz-widget | `widget`, `header`, `title`, `subtitle`, `content`, `footer`, `loading`, `spinner` |
 | viz-table | `wrapper`, `toolbar`, `filter-input`, `table`, `thead`, `tbody` |

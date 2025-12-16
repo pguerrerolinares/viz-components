@@ -1,10 +1,12 @@
 import { html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { createRef, ref } from 'lit/directives/ref.js';
 import Highcharts from 'highcharts/highstock';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
 import 'highcharts/themes/adaptive';
 import { VizBaseComponent } from '../../base/viz-base-component.js';
+import { highchartsThemeStyles } from '../../styles/highcharts-theme.js';
+import { chartHeaderStyles } from '../../styles/chart-header.js';
 
 // Initialize Highcharts modules
 if (typeof HighchartsAccessibility === 'function') {
@@ -50,8 +52,18 @@ export class VizStockChart extends VizBaseComponent {
   private realtimeTimer: ReturnType<typeof setInterval> | null = null;
   private lastPrice = 0;
 
+  /** Cached change info to avoid recalculation on every render */
+  @state()
+  private cachedChangeInfo: { change: number; percent: number; direction: 'up' | 'down' } = {
+    change: 0,
+    percent: 0,
+    direction: 'up',
+  };
+
   static override styles = [
     ...VizBaseComponent.styles,
+    highchartsThemeStyles,
+    chartHeaderStyles,
     css`
       :host {
         display: block;
@@ -61,111 +73,6 @@ export class VizStockChart extends VizBaseComponent {
       .stock-chart-container {
         width: 100%;
         height: 500px;
-      }
-
-      /* Highcharts adaptive theme CSS custom properties - defined on container to override :root */
-      .stock-chart-container.highcharts-light {
-        --highcharts-background-color: #ffffff;
-        --highcharts-color-0: #2caffe;
-        --highcharts-color-1: #544fc5;
-        --highcharts-color-2: #00e272;
-        --highcharts-color-3: #fe6a35;
-        --highcharts-color-4: #6b8abc;
-        --highcharts-color-5: #d568fb;
-        --highcharts-color-6: #2ee0ca;
-        --highcharts-color-7: #fa4b42;
-        --highcharts-color-8: #feb56a;
-        --highcharts-color-9: #91e8e1;
-        --highcharts-neutral-color-100: #000000;
-        --highcharts-neutral-color-80: #333333;
-        --highcharts-neutral-color-60: #666666;
-        --highcharts-neutral-color-40: #999999;
-        --highcharts-neutral-color-20: #cccccc;
-        --highcharts-neutral-color-10: #e6e6e6;
-        --highcharts-neutral-color-5: #f2f2f2;
-        --highcharts-neutral-color-3: #f7f7f7;
-        --highcharts-highlight-color-100: #0022ff;
-        --highcharts-highlight-color-80: #334eff;
-        --highcharts-highlight-color-60: #667aff;
-        --highcharts-highlight-color-20: #ccd3ff;
-        --highcharts-highlight-color-10: #e6e9ff;
-      }
-
-      .stock-chart-container.highcharts-dark {
-        --highcharts-background-color: #1c1c1e;
-        --highcharts-color-0: #67b7dc;
-        --highcharts-color-1: #6794dc;
-        --highcharts-color-2: #6771dc;
-        --highcharts-color-3: #8067dc;
-        --highcharts-color-4: #a367dc;
-        --highcharts-color-5: #c767dc;
-        --highcharts-color-6: #dc67ce;
-        --highcharts-color-7: #dc67ab;
-        --highcharts-color-8: #dc6788;
-        --highcharts-color-9: #dc6967;
-        --highcharts-neutral-color-100: #ffffff;
-        --highcharts-neutral-color-80: #d9d9d9;
-        --highcharts-neutral-color-60: #b3b3b3;
-        --highcharts-neutral-color-40: #808080;
-        --highcharts-neutral-color-20: #4d4d4d;
-        --highcharts-neutral-color-10: #333333;
-        --highcharts-neutral-color-5: #1a1a1a;
-        --highcharts-neutral-color-3: #0d0d0d;
-        --highcharts-highlight-color-100: #88b7ff;
-        --highcharts-highlight-color-80: #99c3ff;
-        --highcharts-highlight-color-60: #aacfff;
-        --highcharts-highlight-color-20: #cce3ff;
-        --highcharts-highlight-color-10: #e6f1ff;
-      }
-
-      .chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: var(--_bg);
-        border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-      }
-
-      .symbol-info {
-        display: flex;
-        align-items: baseline;
-        gap: 1rem;
-      }
-
-      .symbol {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--_text);
-      }
-
-      .price {
-        font-size: 1.25rem;
-        font-weight: 600;
-      }
-
-      .price.up {
-        color: #22c55e;
-      }
-
-      .price.down {
-        color: #ef4444;
-      }
-
-      .change {
-        font-size: 0.875rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-      }
-
-      .change.up {
-        background: rgba(34, 197, 94, 0.1);
-        color: #22c55e;
-      }
-
-      .change.down {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
       }
 
       .live-indicator {
@@ -220,6 +127,11 @@ export class VizStockChart extends VizBaseComponent {
       this.updateChart();
     }
 
+    // Update cached change info when data changes
+    if (changedProperties.has('data')) {
+      this.updateCachedChangeInfo();
+    }
+
     if (this.config.realtime && !this.realtimeTimer) {
       this.startRealtime();
     } else if (!this.config.realtime && this.realtimeTimer) {
@@ -227,26 +139,14 @@ export class VizStockChart extends VizBaseComponent {
     }
   }
 
-  // setupThemeObserver() inherited from VizBaseComponent with debouncing
-
-  private isDarkMode(): boolean {
-    return (
-      this.theme === 'dark' ||
-      (this.theme === 'auto' &&
-        (document.documentElement.classList.contains('dark') ||
-          document.body.classList.contains('dark')))
-    );
-  }
+  // isDarkMode(), getPrimaryColor(), applyHighchartsThemeClass() inherited from VizBaseComponent
 
   protected override updateTheme(): void {
     const container = this.containerRef.value;
     if (!container) return;
 
-    const isDark = this.isDarkMode();
-
     // Apply theme class to container - CSS custom properties will cascade to chart
-    container.classList.toggle('highcharts-dark', isDark);
-    container.classList.toggle('highcharts-light', !isDark);
+    this.applyHighchartsThemeClass(container);
 
     // Force chart to re-read CSS custom property values
     if (this.chart) {
@@ -254,12 +154,14 @@ export class VizStockChart extends VizBaseComponent {
       const xAxis = this.chart.xAxis[0];
       const extremes = xAxis?.getExtremes();
 
-      // Trigger redraw to pick up new CSS variable values
-      this.chart.update({}, true, true, false);
+      // Batch: suppress redraw on update, let setExtremes handle final redraw
+      this.chart.update({}, false, false, false);
 
-      // Restore zoom state
+      // Restore zoom state with single redraw
       if (xAxis && extremes && extremes.userMin !== undefined) {
         xAxis.setExtremes(extremes.userMin, extremes.userMax, true, false);
+      } else {
+        this.chart.redraw();
       }
     }
   }
@@ -281,8 +183,9 @@ export class VizStockChart extends VizBaseComponent {
   private addRealtimePoint(): void {
     if (!this.chart) return;
 
-    const ohlcSeries = this.chart.series[0];
-    const volumeSeries = this.chart.series[1];
+    // Use series IDs instead of indices for robustness
+    const ohlcSeries = this.chart.get('ohlc') as Highcharts.Series | undefined;
+    const volumeSeries = this.chart.get('volume') as Highcharts.Series | undefined;
     if (!ohlcSeries) return;
 
     const lastPoint = this.data[this.data.length - 1];
@@ -301,8 +204,16 @@ export class VizStockChart extends VizBaseComponent {
     const volume = Math.floor((lastPoint.volume ?? 1000000) * (0.8 + Math.random() * 0.4));
 
     const newPoint: OHLCDataPoint = { time, open, high, low, close, volume };
-    this.data = [...this.data.slice(-500), newPoint];
+
+    // Efficient array management: shift+push instead of slice+spread
+    if (this.data.length >= 500) {
+      this.data.shift();
+    }
+    this.data.push(newPoint);
     this.lastPrice = close;
+
+    // Update cached change info
+    this.updateCachedChangeInfo();
 
     // Update chart with animation
     ohlcSeries.addPoint([time, open, high, low, close], true, true, true);
@@ -325,12 +236,10 @@ export class VizStockChart extends VizBaseComponent {
     if (!container || this.data.length === 0) return;
 
     // Apply initial theme class to container
-    const isDark = this.isDarkMode();
-    container.classList.toggle('highcharts-dark', isDark);
-    container.classList.toggle('highcharts-light', !isDark);
+    this.applyHighchartsThemeClass(container);
 
     const cfg = this.config;
-    const primaryColor = isDark ? '#0a84ff' : '#0071e3';
+    const primaryColor = this.getPrimaryColor();
 
     // Transform data to Highcharts format
     const ohlcData = this.data.map((d) => [d.time, d.open, d.high, d.low, d.close]);
@@ -472,23 +381,32 @@ export class VizStockChart extends VizBaseComponent {
     }
   }
 
-  private getChangeInfo() {
-    if (this.data.length < 2) return { change: 0, percent: 0, direction: 'up' as const };
+  /** Updates the cached change info - called when data changes */
+  private updateCachedChangeInfo(): void {
+    if (this.data.length < 2) {
+      this.cachedChangeInfo = { change: 0, percent: 0, direction: 'up' };
+      return;
+    }
 
-    const current = this.data[this.data.length - 1]!;
-    const previous = this.data[this.data.length - 2]!;
+    const current = this.data[this.data.length - 1];
+    const previous = this.data[this.data.length - 2];
+    if (!current || !previous) {
+      this.cachedChangeInfo = { change: 0, percent: 0, direction: 'up' };
+      return;
+    }
+
     const change = current.close - previous.close;
     const percent = (change / previous.close) * 100;
 
-    return {
+    this.cachedChangeInfo = {
       change,
       percent,
-      direction: change >= 0 ? 'up' as const : 'down' as const,
+      direction: change >= 0 ? 'up' : 'down',
     };
   }
 
   protected override render() {
-    const { change, percent, direction } = this.getChangeInfo();
+    const { change, percent, direction } = this.cachedChangeInfo;
     const cfg = this.config;
 
     return html`
@@ -521,13 +439,16 @@ export class VizStockChart extends VizBaseComponent {
   addPoint(point: OHLCDataPoint): void {
     this.data = [...this.data, point];
     this.lastPrice = point.close;
+    this.updateCachedChangeInfo();
 
     if (this.chart) {
-      const ohlcSeries = this.chart.series[0];
-      const volumeSeries = this.chart.series[1];
+      // Use series IDs instead of indices for robustness
+      const ohlcSeries = this.chart.get('ohlc') as Highcharts.Series | undefined;
+      const volumeSeries = this.chart.get('volume') as Highcharts.Series | undefined;
 
       ohlcSeries?.addPoint([point.time, point.open, point.high, point.low, point.close], true, true, true);
-      if (volumeSeries && point.volume) {
+      // Respect showVolume config (consistent with addRealtimePoint)
+      if (volumeSeries && point.volume && this.config.showVolume !== false) {
         volumeSeries.addPoint([point.time, point.volume], true, true, false);
       }
     }

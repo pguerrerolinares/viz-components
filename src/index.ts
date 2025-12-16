@@ -47,5 +47,15 @@ export {
   updateStockChartThemeDOM,
 } from './utils/highcharts-theme.js';
 
+// Export sample data generators for testing/demos
+export {
+  generateHistoricalPrices,
+  getMarketEvents,
+} from './utils/sample-data.js';
+
+// Export style utilities for custom components
+export { highchartsThemeStyles } from './styles/highcharts-theme.js';
+export { chartHeaderStyles } from './styles/chart-header.js';
+
 // Library version
 export const VERSION = '0.1.0';

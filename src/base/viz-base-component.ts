@@ -149,4 +149,35 @@ export class VizBaseComponent extends LitElement {
   protected updateTheme(): void {
     // Override in subclasses to handle theme updates
   }
+
+  /**
+   * Check if dark mode is currently active
+   * Considers explicit theme property or auto-detection from document classes
+   */
+  protected isDarkMode(): boolean {
+    return (
+      this.theme === 'dark' ||
+      (this.theme === 'auto' &&
+        (document.documentElement.classList.contains('dark') ||
+          document.body.classList.contains('dark')))
+    );
+  }
+
+  /**
+   * Get primary color based on current theme
+   * Returns appropriate accent color for light or dark mode
+   */
+  protected getPrimaryColor(): string {
+    return this.isDarkMode() ? '#0a84ff' : '#0071e3';
+  }
+
+  /**
+   * Apply Highcharts theme class to a container element
+   * Sets highcharts-dark or highcharts-light class based on current theme
+   */
+  protected applyHighchartsThemeClass(container: HTMLElement): void {
+    const isDark = this.isDarkMode();
+    container.classList.toggle('highcharts-dark', isDark);
+    container.classList.toggle('highcharts-light', !isDark);
+  }
 }
