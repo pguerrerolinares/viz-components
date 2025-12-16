@@ -1,106 +1,67 @@
+# CLAUDE.md
 
-Default to using Bun instead of Node.js.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## Project Overview
 
-## APIs
+Framework-agnostic Web Components library for data visualization, built with **Lit** and **Highcharts**. Designed for maximum portability across Next.js, Angular, JSP, and vanilla HTML.
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+## Development Commands
 
-## Testing
+**Package Manager**: Bun (required)
 
-Use `bun test` to run tests.
-
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+```bash
+bun install          # Install dependencies
+bun run build        # Build for production (minified + sourcemaps)
+bun run dev          # Build in watch mode
+bun run build:types  # Generate TypeScript declarations
+bun run typecheck    # TypeScript type checking
 ```
 
-## Frontend
+## Architecture
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+### Tech Stack
+- **Lit** 3.x - Web Components framework with decorators
+- **Highcharts** 12.x - Charting library (external dependency)
+- **Bun** - Bundler and runtime (ultra-fast, zero-config)
+- **TypeScript** - Strict mode, ES2020 target
 
-Server:
+### Key Patterns
 
-```ts#index.ts
-import index from "./index.html"
+**Base Component**: All components extend `VizBaseComponent` which provides:
+- Theme color extraction from CSS custom properties (`--viz-*`)
+- Loading/error state management
+- Common base styles
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
+```typescript
+export class VizMyComponent extends VizBaseComponent {
+  @property({ type: String }) data = '';
+  @state() protected internalState = null;
+
+  override render() {
+    return html`<div class="container">...</div>`;
   }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
 }
-
-root.render(<Frontend />);
+customElements.define('viz-my-component', VizMyComponent);
 ```
 
-Then, run index.ts
+**Theming**: Components consume CSS custom properties from host applications:
+- `--viz-primary`, `--viz-bg`, `--viz-text` - Core colors
+- `--viz-accent-*` - Accent colors
+- `--viz-radius` - Border radius
 
-```sh
-bun --hot ./index.ts
-```
+### Build Output
+- `dist/index.js` - ES module bundle
+- `dist/index.d.ts` - TypeScript declarations
 
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+Highcharts and Lit are external dependencies (peer deps), not bundled.
+
+## Planned Components
+
+Components to implement (currently only `VizBaseComponent` exists):
+- `<viz-chart>` - Universal chart (line/bar/pie/area)
+- `<viz-dashboard>` - Grid layout container
+- `<viz-widget>` - Widget wrapper with header/slots
+- `<viz-table>` - Interactive data table
+- `<viz-heatmap>` - Heatmap visualization
+- `<viz-treemap>` - Treemap visualization
