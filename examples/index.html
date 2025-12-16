@@ -25,8 +25,9 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       padding: 2rem;
-      background: #f5f5f7;
+      background: var(--body-bg, #f5f5f7);
       color: var(--viz-text);
+      transition: background 0.3s, color 0.3s;
     }
 
     h1 {
@@ -42,7 +43,7 @@
     }
 
     .demo-section {
-      background: white;
+      background: var(--viz-bg);
       padding: 1.5rem;
       border-radius: var(--viz-radius);
       margin-bottom: 1.5rem;
@@ -54,6 +55,10 @@
       color: var(--viz-primary);
     }
 
+    .dark .demo-section {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
     viz-chart, viz-heatmap, viz-treemap {
       height: 350px;
     }
@@ -61,10 +66,63 @@
     viz-table {
       max-height: 400px;
     }
+
+    viz-stock-chart {
+      height: 600px;
+    }
+
+    viz-stock-evolution {
+      height: 600px;
+    }
+
+    .dark {
+      --viz-bg: #1c1c1e;
+      --viz-text: #f5f5f7;
+      --viz-primary: #0a84ff;
+      --body-bg: #000;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--viz-primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      z-index: 100;
+    }
   </style>
 </head>
 <body>
+  <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')">
+    Toggle Dark Mode
+  </button>
+
   <h1>viz-components Library Demo</h1>
+
+  <!-- Stock Chart Section -->
+  <h2>Real-Time Stock Chart</h2>
+
+  <div class="demo-section">
+    <h3>Live Trading View with Technical Indicators</h3>
+    <viz-stock-chart id="stockChart"></viz-stock-chart>
+  </div>
+
+  <!-- Stock Evolution Section -->
+  <h2>Historical Stock Evolution</h2>
+
+  <div class="demo-section">
+    <h3>S&P 500 Historical Performance with Market Events</h3>
+    <p style="color: var(--viz-text); opacity: 0.7; margin-bottom: 1rem;">
+      Shows simulated S&P 500 data from 2000-2024 with major market events (crashes, rallies, policy changes).
+      Click on the flag markers to see event details.
+    </p>
+    <viz-stock-evolution id="stockEvolution"></viz-stock-evolution>
+  </div>
 
   <!-- Charts Section -->
   <h2>Charts</h2>
@@ -129,10 +187,62 @@
     // Wait for custom elements to be defined
     await Promise.all([
       customElements.whenDefined('viz-chart'),
+      customElements.whenDefined('viz-stock-chart'),
+      customElements.whenDefined('viz-stock-evolution'),
       customElements.whenDefined('viz-table'),
       customElements.whenDefined('viz-heatmap'),
       customElements.whenDefined('viz-treemap'),
     ]);
+
+    // Generate sample OHLC data (simulating stock prices)
+    function generateOHLCData(days = 100) {
+      const data = [];
+      let price = 150; // Starting price
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      for (let i = days; i >= 0; i--) {
+        const time = now - (i * dayMs);
+        const volatility = 0.02;
+        const change = price * volatility * (Math.random() - 0.5) * 2;
+
+        const open = price;
+        const close = price + change;
+        const high = Math.max(open, close) + Math.abs(change) * Math.random();
+        const low = Math.min(open, close) - Math.abs(change) * Math.random();
+        const volume = Math.floor(1000000 + Math.random() * 5000000);
+
+        data.push({ time, open, high, low, close, volume });
+        price = close;
+      }
+
+      return data;
+    }
+
+    // Stock Chart with real-time updates
+    const stockChart = document.getElementById('stockChart');
+    stockChart.setAttribute('data', JSON.stringify(generateOHLCData(100)));
+    stockChart.setAttribute('config', JSON.stringify({
+      symbol: 'AAPL',
+      currency: '$',
+      showVolume: true,
+      realtime: true,
+      realtimeInterval: 2000
+    }));
+
+    // Listen for price updates
+    stockChart.addEventListener('price-update', (e) => {
+      console.log('Price update:', e.detail);
+    });
+
+    // Stock Evolution - uses built-in sample data by default
+    const stockEvolution = document.getElementById('stockEvolution');
+    stockEvolution.setAttribute('config', JSON.stringify({
+      symbol: 'S&P 500',
+      currency: '$',
+      showVolume: false,
+      showEvents: true
+    }));
 
     // Line Chart Data
     document.getElementById('lineChart').setAttribute('data', JSON.stringify([

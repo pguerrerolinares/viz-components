@@ -106,34 +106,34 @@ export class VizWidget extends VizBaseComponent {
       .join('; ');
 
     return html`
-      <div class="widget" style=${widgetStyles}>
+      <div class="widget" part="widget" style=${widgetStyles}>
         ${this.title || this.subtitle
           ? html`
-              <div class="widget-header">
+              <div class="widget-header" part="header">
                 <slot name="header">
                   ${this.title
-                    ? html`<h3 class="widget-title">${this.title}</h3>`
+                    ? html`<h3 class="widget-title" part="title">${this.title}</h3>`
                     : ''}
                   ${this.subtitle
-                    ? html`<p class="widget-subtitle">${this.subtitle}</p>`
+                    ? html`<p class="widget-subtitle" part="subtitle">${this.subtitle}</p>`
                     : ''}
                 </slot>
               </div>
             `
           : ''}
 
-        <div class="widget-content">
+        <div class="widget-content" part="content">
           <slot></slot>
           ${this.loading
             ? html`
-                <div class="loading-overlay">
-                  <div class="spinner"></div>
+                <div class="loading-overlay" part="loading">
+                  <div class="spinner" part="spinner"></div>
                 </div>
               `
             : ''}
         </div>
 
-        <div class="widget-footer">
+        <div class="widget-footer" part="footer">
           <slot name="footer"></slot>
         </div>
       </div>

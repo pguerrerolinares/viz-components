@@ -1,15 +1,16 @@
 import { html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { createRef, ref } from 'lit/directives/ref.js';
-import Highcharts from 'highcharts';
+import Highcharts from 'highcharts/highstock';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
 import { VizBaseComponent } from '../../base/viz-base-component.js';
+import { updateHighchartsThemeDOM } from '../../utils/highcharts-theme.js';
+import type { ChartType, ChartSeries, ChartConfig } from '../../types/index.js';
 
 // Initialize accessibility module
 if (typeof HighchartsAccessibility === 'function') {
   (HighchartsAccessibility as unknown as (hc: typeof Highcharts) => void)(Highcharts);
 }
-import type { ChartType, ChartSeries, ChartConfig } from '../../types/index.js';
 
 /**
  * Universal chart component wrapping Highcharts
@@ -29,8 +30,11 @@ export class VizChart extends VizBaseComponent {
   @property({ type: Array })
   categories: string[] = [];
 
+  // theme property inherited from VizBaseComponent
+
   private chart: Highcharts.Chart | null = null;
   private containerRef = createRef<HTMLDivElement>();
+  // themeObserver inherited from VizBaseComponent
 
   static override styles = [
     ...VizBaseComponent.styles,
@@ -48,16 +52,66 @@ export class VizChart extends VizBaseComponent {
     `,
   ];
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.setupThemeObserver();
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this.chart) {
       this.chart.destroy();
       this.chart = null;
     }
+    this.cleanupThemeObserver();
   }
 
-  protected override updated(): void {
-    this.updateChart();
+  protected override updated(changedProperties: Map<string, unknown>): void {
+    // Only update chart when needed
+    const needsChartUpdate =
+      !this.chart ||
+      changedProperties.has('type') ||
+      changedProperties.has('data') ||
+      changedProperties.has('config') ||
+      changedProperties.has('categories') ||
+      changedProperties.has('theme');
+
+    if (needsChartUpdate) {
+      this.updateChart();
+    }
+  }
+
+  // setupThemeObserver() inherited from VizBaseComponent with debouncing
+
+  protected override updateTheme(): void {
+    if (!this.chart) return;
+
+    const theme = this.getThemeColors();
+    const isDark = theme.background !== '#ffffff';
+
+    // Update only chart background and tooltip via Highcharts API
+    this.chart.update(
+      {
+        chart: {
+          backgroundColor: theme.background,
+        },
+        tooltip: {
+          backgroundColor: theme.background,
+          style: { color: theme.text },
+        },
+      },
+      false,
+      false,
+      false
+    );
+
+    this.chart.redraw(false);
+
+    // Update other colors via DOM manipulation to preserve layout
+    const container = this.containerRef.value;
+    if (!container) return;
+
+    updateHighchartsThemeDOM(container, theme, isDark);
   }
 
   private updateChart(): void {
@@ -123,6 +177,8 @@ export class VizChart extends VizBaseComponent {
       })) as Highcharts.SeriesOptionsType[],
       colors: theme.palette,
       credits: { enabled: false },
+      // Merge user's custom Highcharts options
+      ...this.config.highcharts,
     };
 
     if (this.chart) {
@@ -149,7 +205,7 @@ export class VizChart extends VizBaseComponent {
   }
 
   protected override render() {
-    return html`<div class="chart-container" ${ref(this.containerRef)}></div>`;
+    return html`<div class="chart-container" part="chart" ${ref(this.containerRef)}></div>`;
   }
 }
 

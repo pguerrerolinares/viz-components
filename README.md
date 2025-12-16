@@ -37,7 +37,38 @@ Universal chart component supporting line, bar, column, pie, and area charts.
 - `type` - Chart type: `line`, `bar`, `column`, `pie`, `area`
 - `data` - JSON array of series data
 - `categories` - JSON array of x-axis categories
-- `config` - JSON object with title, subtitle, axis titles, etc.
+- `config` - JSON object with title, subtitle, axis titles, and `highcharts` for full customization
+
+**Highcharts Customization:**
+
+Pass any [Highcharts options](https://api.highcharts.com/highcharts/) via the `config.highcharts` property:
+
+```html
+<viz-chart
+  type="line"
+  data='[{"name": "Sales", "data": [30, 40, 35, 50, 49]}]'
+  config='{
+    "title": "Custom Chart",
+    "highcharts": {
+      "tooltip": {
+        "backgroundColor": "#333",
+        "style": { "color": "#fff" },
+        "borderRadius": 8
+      },
+      "legend": {
+        "layout": "vertical",
+        "align": "right"
+      },
+      "plotOptions": {
+        "line": {
+          "lineWidth": 3,
+          "marker": { "radius": 6 }
+        }
+      }
+    }
+  }'
+></viz-chart>
+```
 
 ### viz-dashboard
 
@@ -119,7 +150,9 @@ Treemap visualization for hierarchical data.
 ></viz-treemap>
 ```
 
-## Theming
+## Styling
+
+### CSS Custom Properties
 
 Components use CSS custom properties for theming. Set these on your root element:
 
@@ -141,6 +174,43 @@ Components use CSS custom properties for theming. Set these on your root element
   --viz-text: #f5f5f7;
 }
 ```
+
+### CSS Parts
+
+Components expose CSS parts for styling from the parent. Use `::part()` selector:
+
+```css
+/* Style widget parts */
+viz-widget::part(widget) {
+  border: 2px solid #ccc;
+}
+viz-widget::part(title) {
+  font-size: 1.5rem;
+  color: navy;
+}
+viz-widget::part(header) {
+  background: linear-gradient(to right, #f0f0f0, #fff);
+}
+
+/* Style table parts */
+viz-table::part(table) {
+  border: 1px solid #ddd;
+}
+viz-table::part(filter-input) {
+  border-radius: 20px;
+}
+```
+
+**Available parts:**
+
+| Component | Parts |
+|-----------|-------|
+| viz-chart | `chart` |
+| viz-dashboard | `dashboard` |
+| viz-widget | `widget`, `header`, `title`, `subtitle`, `content`, `footer`, `loading`, `spinner` |
+| viz-table | `wrapper`, `toolbar`, `filter-input`, `table`, `thead`, `tbody` |
+| viz-heatmap | `chart` |
+| viz-treemap | `chart` |
 
 ## Framework Integration
 

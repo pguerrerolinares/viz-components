@@ -219,16 +219,16 @@ export class VizTable extends VizBaseComponent {
 
   protected override render() {
     return html`
-      <div class="table-wrapper">
+      <div class="table-wrapper" part="wrapper">
         ${this.config.filterable ? this.renderToolbar() : nothing}
 
-        <table>
-          <thead>
+        <table part="table">
+          <thead part="thead">
             <tr>
               ${this.columns.map((col) => this.renderHeaderCell(col))}
             </tr>
           </thead>
-          <tbody>
+          <tbody part="tbody">
             ${this.paginatedData.length === 0
               ? this.renderEmptyState()
               : this.paginatedData.map((row, index) =>
@@ -244,9 +244,10 @@ export class VizTable extends VizBaseComponent {
 
   private renderToolbar() {
     return html`
-      <div class="table-toolbar">
+      <div class="table-toolbar" part="toolbar">
         <input
           class="filter-input"
+          part="filter-input"
           type="text"
           placeholder="Filter..."
           .value=${this.filterText}

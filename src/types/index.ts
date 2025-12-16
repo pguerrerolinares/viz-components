@@ -25,6 +25,8 @@ export interface ChartConfig {
   legend?: boolean;
   tooltip?: boolean;
   animation?: boolean;
+  /** Pass any Highcharts options for full customization */
+  highcharts?: Record<string, unknown>;
 }
 
 // Dashboard types
@@ -80,6 +82,8 @@ export interface HeatmapConfig {
     max?: number;
     stops?: [number, string][];
   };
+  /** Pass any Highcharts options for full customization */
+  highcharts?: Record<string, unknown>;
 }
 
 // Treemap types
@@ -95,6 +99,8 @@ export interface TreemapConfig {
   allowDrillDown?: boolean;
   levelIsConstant?: boolean;
   layoutAlgorithm?: 'squarified' | 'stripes' | 'strip' | 'sliceAndDice';
+  /** Pass any Highcharts options for full customization */
+  highcharts?: Record<string, unknown>;
 }
 
 // Theme types
@@ -118,4 +124,32 @@ export interface VizTableEvent<T = unknown> {
   column?: string;
   direction?: 'asc' | 'desc';
   selectedRows?: T[];
+}
+
+// Stock Evolution types
+export interface PriceDataPoint {
+  time: number;
+  price: number;
+  volume?: number;
+}
+
+export type MarketEventType = 'crash' | 'rally' | 'policy' | 'crisis' | 'milestone';
+
+export interface MarketEvent {
+  date: number;
+  title: string;
+  description: string;
+  type: MarketEventType;
+}
+
+export interface StockEvolutionConfig {
+  title?: string;
+  symbol?: string;
+  currency?: string;
+  showVolume?: boolean;
+  showEvents?: boolean;
+  areaColor?: string;
+  eventColors?: Record<MarketEventType, string>;
+  /** Pass any Highcharts options for full customization */
+  highcharts?: Record<string, unknown>;
 }

@@ -50,7 +50,7 @@ export class VizDashboard extends VizBaseComponent {
     const styles = this.getLayoutStyles();
 
     return html`
-      <div class="dashboard layout-${this.layout}" style=${styles}>
+      <div class="dashboard layout-${this.layout}" part="dashboard" style=${styles}>
         <slot></slot>
       </div>
     `;

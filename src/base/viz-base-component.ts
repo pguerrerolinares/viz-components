@@ -1,5 +1,5 @@
 import { LitElement, css } from 'lit';
-import { state } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import type { ThemeColors } from '../types/index.js';
 
 /**
@@ -7,11 +7,21 @@ import type { ThemeColors } from '../types/index.js';
  * Provides theme handling, loading states, and common styles
  */
 export class VizBaseComponent extends LitElement {
+  /** Theme mode: 'light', 'dark', or 'auto' (detects from parent) */
+  @property({ type: String })
+  theme: 'light' | 'dark' | 'auto' = 'auto';
+
   @state()
   protected loading = false;
 
   @state()
   protected error: string | null = null;
+
+  /** MutationObserver for detecting theme changes */
+  protected themeObserver: MutationObserver | null = null;
+
+  /** Debounce timer for theme updates */
+  private themeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   static override styles = [css`
     :host {
@@ -87,5 +97,56 @@ export class VizBaseComponent extends LitElement {
     console.error('[VizComponent]', error);
     this.error = error instanceof Error ? error.message : String(error);
     this.loading = false;
+  }
+
+  /**
+   * Setup theme observer for auto theme detection
+   * Watches document.documentElement and document.body for class changes
+   * Call this in connectedCallback() of subclasses that need theme auto-detection
+   */
+  protected setupThemeObserver(): void {
+    if (this.theme !== 'auto') return;
+
+    this.themeObserver = new MutationObserver(() => {
+      // Debounce rapid theme toggles
+      if (this.themeDebounceTimer) {
+        clearTimeout(this.themeDebounceTimer);
+      }
+      this.themeDebounceTimer = setTimeout(() => {
+        this.updateTheme();
+      }, 50);
+    });
+
+    this.themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    this.themeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
+
+  /**
+   * Cleanup theme observer and debounce timer
+   * Call this in disconnectedCallback() of subclasses
+   */
+  protected cleanupThemeObserver(): void {
+    if (this.themeDebounceTimer) {
+      clearTimeout(this.themeDebounceTimer);
+      this.themeDebounceTimer = null;
+    }
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+      this.themeObserver = null;
+    }
+  }
+
+  /**
+   * Update theme colors - override in subclasses
+   * Called when theme changes are detected via MutationObserver
+   */
+  protected updateTheme(): void {
+    // Override in subclasses to handle theme updates
   }
 }
