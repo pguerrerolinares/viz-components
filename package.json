@@ -1,5 +1,5 @@
 {
-  "name": "@pguerrero/viz-components",
+  "name": "@pguerrerolinares/viz-components",
   "version": "0.1.0",
   "description": "Framework-agnostic Web Components library for data visualization",
   "type": "module",

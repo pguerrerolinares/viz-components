@@ -1,4 +1,4 @@
-# @pguerrero/viz-components
+# @pguerrerolinares/viz-components
 
 Framework-agnostic Web Components library for data visualization. Built with Lit and Highcharts.
 
@@ -13,9 +13,9 @@ Framework-agnostic Web Components library for data visualization. Built with Lit
 ## Installation
 
 ```bash
-npm install @pguerrero/viz-components highcharts
+npm install @pguerrerolinares/viz-components highcharts
 # or
-bun add @pguerrero/viz-components highcharts
+bun add @pguerrerolinares/viz-components highcharts
 ```
 
 ## Components
@@ -287,7 +287,7 @@ viz-table::part(filter-input) {
 
 ```html
 <script type="module">
-  import '@pguerrero/viz-components';
+  import '@pguerrerolinares/viz-components';
 </script>
 
 <viz-chart type="line" data='[{"name": "Data", "data": [1, 2, 3]}]'></viz-chart>
@@ -301,7 +301,7 @@ import { useEffect } from 'react';
 
 export default function Chart() {
   useEffect(() => {
-    import('@pguerrero/viz-components');
+    import('@pguerrerolinares/viz-components');
   }, []);
 
   return (
@@ -318,7 +318,7 @@ export default function Chart() {
 ```typescript
 // app.module.ts
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import '@pguerrero/viz-components';
+import '@pguerrerolinares/viz-components';
 
 @NgModule({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],

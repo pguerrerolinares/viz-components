@@ -1,0 +1,21 @@
+# Source files (only dist/ should be published)
+src/
+examples/
+
+# Config files
+tsconfig.json
+vite.config.ts
+serve.ts
+CLAUDE.md
+
+# Dev files
+*.log
+.DS_Store
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Lock files (bun.lock should not be published for libraries)
+bun.lock
