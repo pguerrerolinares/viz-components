@@ -1,0 +1,44 @@
+{
+  "name": "@pguerrero/viz-components",
+  "version": "0.1.0",
+  "description": "Framework-agnostic Web Components library for data visualization",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target browser --minify --sourcemap",
+    "dev": "bun build src/index.ts --outdir dist --target browser --watch",
+    "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap",
+    "typecheck": "tsc --noEmit",
+    "serve": "bun --bun serve.ts",
+    "prepublishOnly": "bun run build && bun run build:types"
+  },
+  "keywords": [
+    "web-components",
+    "lit",
+    "data-visualization",
+    "charts",
+    "highcharts"
+  ],
+  "author": "Paul Guerrero Linares",
+  "license": "MIT",
+  "dependencies": {
+    "lit": "^3.2.0"
+  },
+  "peerDependencies": {
+    "highcharts": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

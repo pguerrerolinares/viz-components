@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>viz-components Demo</title>
+  <style>
+    :root {
+      --viz-primary: #0071e3;
+      --viz-bg: #ffffff;
+      --viz-text: #1d1d1f;
+      --viz-accent-purple: #6366f1;
+      --viz-accent-cyan: #0d9488;
+      --viz-accent-pink: #ec4899;
+      --viz-category-web: #3b82f6;
+      --viz-category-ai: #8b5cf6;
+      --viz-radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f5f5f7;
+      color: var(--viz-text);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--viz-primary);
+    }
+
+    .demo-section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--viz-radius);
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .demo-section h3 {
+      margin-top: 0;
+      color: var(--viz-primary);
+    }
+
+    viz-chart, viz-heatmap, viz-treemap {
+      height: 350px;
+    }
+
+    viz-table {
+      max-height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h1>viz-components Library Demo</h1>
+
+  <!-- Charts Section -->
+  <h2>Charts</h2>
+
+  <div class="demo-section">
+    <h3>Line Chart</h3>
+    <viz-chart id="lineChart" type="line"></viz-chart>
+  </div>
+
+  <div class="demo-section">
+    <h3>Bar Chart</h3>
+    <viz-chart id="barChart" type="bar"></viz-chart>
+  </div>
+
+  <div class="demo-section">
+    <h3>Pie Chart</h3>
+    <viz-chart id="pieChart" type="pie"></viz-chart>
+  </div>
+
+  <!-- Dashboard Section -->
+  <h2>Dashboard & Widgets</h2>
+
+  <viz-dashboard columns="3" gap="16">
+    <viz-widget title="Revenue" subtitle="Monthly">
+      <viz-chart id="widgetChart1" type="area"></viz-chart>
+    </viz-widget>
+    <viz-widget title="Users" subtitle="Active">
+      <viz-chart id="widgetChart2" type="column"></viz-chart>
+    </viz-widget>
+    <viz-widget title="Performance" subtitle="Score">
+      <viz-chart id="widgetChart3" type="line"></viz-chart>
+    </viz-widget>
+  </viz-dashboard>
+
+  <!-- Table Section -->
+  <h2>Data Table</h2>
+
+  <div class="demo-section">
+    <h3>Interactive Table with Sorting & Filtering</h3>
+    <viz-table id="dataTable"></viz-table>
+  </div>
+
+  <!-- Advanced Charts Section -->
+  <h2>Advanced Visualizations</h2>
+
+  <div class="demo-section">
+    <h3>Heatmap</h3>
+    <viz-heatmap id="heatmap" title="Weekly Activity"></viz-heatmap>
+  </div>
+
+  <div class="demo-section">
+    <h3>Treemap</h3>
+    <viz-treemap id="treemap" title="Project Breakdown"></viz-treemap>
+  </div>
+
+  <script type="module">
+    import { VERSION } from '../dist/index.js';
+    import '../dist/index.js';
+
+    console.log('viz-components version:', VERSION);
+
+    // Wait for custom elements to be defined
+    await Promise.all([
+      customElements.whenDefined('viz-chart'),
+      customElements.whenDefined('viz-table'),
+      customElements.whenDefined('viz-heatmap'),
+      customElements.whenDefined('viz-treemap'),
+    ]);
+
+    // Line Chart Data
+    document.getElementById('lineChart').setAttribute('data', JSON.stringify([
+      { name: 'Sales', data: [30, 40, 35, 50, 49, 60, 70, 91, 125] },
+      { name: 'Revenue', data: [20, 30, 45, 32, 43, 52, 63, 80, 95] }
+    ]));
+    document.getElementById('lineChart').setAttribute('categories', JSON.stringify([
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'
+    ]));
+    document.getElementById('lineChart').setAttribute('config', JSON.stringify({
+      title: 'Monthly Performance',
+      yAxisTitle: 'Value'
+    }));
+
+    // Bar Chart Data
+    document.getElementById('barChart').setAttribute('data', JSON.stringify([
+      { name: 'Q1', data: [120, 200, 150] },
+      { name: 'Q2', data: [180, 250, 200] }
+    ]));
+    document.getElementById('barChart').setAttribute('categories', JSON.stringify([
+      'Product A', 'Product B', 'Product C'
+    ]));
+    document.getElementById('barChart').setAttribute('config', JSON.stringify({
+      title: 'Quarterly Sales'
+    }));
+
+    // Pie Chart Data
+    document.getElementById('pieChart').setAttribute('data', JSON.stringify([
+      { name: 'Distribution', data: [
+        { name: 'Chrome', y: 64.02 },
+        { name: 'Safari', y: 18.78 },
+        { name: 'Firefox', y: 5.02 },
+        { name: 'Edge', y: 4.84 },
+        { name: 'Other', y: 7.34 }
+      ]}
+    ]));
+    document.getElementById('pieChart').setAttribute('config', JSON.stringify({
+      title: 'Browser Market Share'
+    }));
+
+    // Widget Charts
+    document.getElementById('widgetChart1').setAttribute('data', JSON.stringify([
+      { name: 'Revenue', data: [10, 20, 15, 30, 25, 40] }
+    ]));
+    document.getElementById('widgetChart2').setAttribute('data', JSON.stringify([
+      { name: 'Users', data: [150, 200, 180, 250, 220] }
+    ]));
+    document.getElementById('widgetChart3').setAttribute('data', JSON.stringify([
+      { name: 'Score', data: [75, 80, 85, 82, 90, 88] }
+    ]));
+
+    // Table Data
+    document.getElementById('dataTable').setAttribute('data', JSON.stringify([
+      { id: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'Developer', status: 'Active' },
+      { id: 2, name: 'Bob Smith', email: 'bob@example.com', role: 'Designer', status: 'Active' },
+      { id: 3, name: 'Carol White', email: 'carol@example.com', role: 'Manager', status: 'Inactive' },
+      { id: 4, name: 'David Brown', email: 'david@example.com', role: 'Developer', status: 'Active' },
+      { id: 5, name: 'Eve Davis', email: 'eve@example.com', role: 'Designer', status: 'Active' },
+      { id: 6, name: 'Frank Miller', email: 'frank@example.com', role: 'Developer', status: 'Inactive' },
+      { id: 7, name: 'Grace Wilson', email: 'grace@example.com', role: 'Manager', status: 'Active' },
+      { id: 8, name: 'Henry Taylor', email: 'henry@example.com', role: 'Developer', status: 'Active' },
+    ]));
+    document.getElementById('dataTable').setAttribute('columns', JSON.stringify([
+      { key: 'id', header: 'ID', sortable: true, width: '60px' },
+      { key: 'name', header: 'Name', sortable: true },
+      { key: 'email', header: 'Email', sortable: true },
+      { key: 'role', header: 'Role', sortable: true },
+      { key: 'status', header: 'Status', sortable: true }
+    ]));
+    document.getElementById('dataTable').setAttribute('config', JSON.stringify({
+      sortable: true,
+      filterable: true,
+      paginate: true,
+      pageSize: 5,
+      selectable: true
+    }));
+
+    // Heatmap Data
+    document.getElementById('heatmap').setAttribute('data', JSON.stringify([
+      { x: 0, y: 0, value: 10 }, { x: 0, y: 1, value: 19 }, { x: 0, y: 2, value: 8 },
+      { x: 1, y: 0, value: 92 }, { x: 1, y: 1, value: 58 }, { x: 1, y: 2, value: 78 },
+      { x: 2, y: 0, value: 35 }, { x: 2, y: 1, value: 15 }, { x: 2, y: 2, value: 123 },
+      { x: 3, y: 0, value: 72 }, { x: 3, y: 1, value: 132 }, { x: 3, y: 2, value: 52 },
+      { x: 4, y: 0, value: 38 }, { x: 4, y: 1, value: 28 }, { x: 4, y: 2, value: 98 },
+    ]));
+    document.getElementById('heatmap').setAttribute('x-categories', JSON.stringify([
+      'Mon', 'Tue', 'Wed', 'Thu', 'Fri'
+    ]));
+    document.getElementById('heatmap').setAttribute('y-categories', JSON.stringify([
+      'Morning', 'Afternoon', 'Evening'
+    ]));
+
+    // Treemap Data (flat structure - no hierarchy for simplicity)
+    document.getElementById('treemap').setAttribute('data', JSON.stringify([
+      { id: 'react', name: 'React', value: 40 },
+      { id: 'vue', name: 'Vue', value: 25 },
+      { id: 'angular', name: 'Angular', value: 20 },
+      { id: 'node', name: 'Node.js', value: 35 },
+      { id: 'python', name: 'Python', value: 30 },
+      { id: 'go', name: 'Go', value: 15 },
+    ]));
+  </script>
+</body>
+</html>
