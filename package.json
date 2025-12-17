@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target browser --minify --sourcemap",
+    "build:iife": "bun build src/index.ts --outfile dist/viz-components.bundle.js --target browser --format iife --minify --sourcemap",
     "dev": "bun build src/index.ts --outdir dist --target browser --watch",
     "build:types": "tsc --emitDeclarationOnly --declaration --declarationMap",
     "typecheck": "tsc --noEmit",

@@ -11,6 +11,7 @@ export { VizChart } from './components/chart/viz-chart.js';
 export { VizStockChart } from './components/chart/viz-stock-chart.js';
 export type { OHLCDataPoint, StockChartConfig } from './components/chart/viz-stock-chart.js';
 export { VizStockEvolution } from './components/chart/viz-stock-evolution.js';
+export { VizEventModal } from './components/chart/viz-event-modal.js';
 export { VizDashboard } from './components/dashboard/viz-dashboard.js';
 export { VizWidget } from './components/dashboard/viz-widget.js';
 export { VizTable } from './components/table/viz-table.js';
@@ -56,6 +57,11 @@ export {
 // Export style utilities for custom components
 export { highchartsThemeStyles } from './styles/highcharts-theme.js';
 export { chartHeaderStyles } from './styles/chart-header.js';
+export { eventModalStyles } from './styles/event-modal.js';
+
+// Export market event utilities
+export { DEFAULT_EVENT_COLORS, EVENT_TYPE_LABELS } from './utils/market-event-constants.js';
+export { createMarkerSvg, getMarkerHeight, STEM_HEIGHTS, LUCIDE_ICONS } from './utils/market-event-icons.js';
 
 // Library version
 export const VERSION = '0.1.0';

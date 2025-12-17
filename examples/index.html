@@ -121,7 +121,7 @@
       Shows simulated S&P 500 data from 2000-2024 with major market events (crashes, rallies, policy changes).
       Click on the flag markers to see event details.
     </p>
-    <viz-stock-evolution id="stockEvolution"></viz-stock-evolution>
+    <viz-stock-evolution demo></viz-stock-evolution>
   </div>
 
   <!-- Charts Section -->
@@ -234,15 +234,6 @@
     stockChart.addEventListener('price-update', (e) => {
       console.log('Price update:', e.detail);
     });
-
-    // Stock Evolution - uses built-in sample data by default
-    const stockEvolution = document.getElementById('stockEvolution');
-    stockEvolution.setAttribute('config', JSON.stringify({
-      symbol: 'S&P 500',
-      currency: '$',
-      showVolume: false,
-      showEvents: true
-    }));
 
     // Line Chart Data
     document.getElementById('lineChart').setAttribute('data', JSON.stringify([
