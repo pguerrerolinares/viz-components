@@ -3,13 +3,15 @@
  * Framework-agnostic Web Components library for data visualization
  */
 
-// Export base component
+// Export base components
 export { VizBaseComponent } from './base/viz-base-component.js';
+export { VizHighchartsComponent } from './base/viz-highcharts-component.js';
+export { VizStockChartBase } from './base/viz-stock-chart-base.js';
+export type { ChangeInfo } from './base/viz-stock-chart-base.js';
 
 // Export components
 export { VizChart } from './components/chart/viz-chart.js';
 export { VizStockChart } from './components/chart/viz-stock-chart.js';
-export type { OHLCDataPoint, StockChartConfig } from './components/chart/viz-stock-chart.js';
 export { VizStockEvolution } from './components/chart/viz-stock-evolution.js';
 export { VizEventModal } from './components/chart/viz-event-modal.js';
 export { VizDashboard } from './components/dashboard/viz-dashboard.js';
@@ -36,32 +38,26 @@ export type {
   ThemeColors,
   VizChartEvent,
   VizTableEvent,
+  OHLCDataPoint,
+  StockChartConfig,
   PriceDataPoint,
   MarketEvent,
   MarketEventType,
   StockEvolutionConfig,
 } from './types/index.js';
 
-// Export theme utilities
-export {
-  updateHighchartsThemeDOM,
-  updateStockChartThemeDOM,
-} from './utils/highcharts-theme.js';
-
 // Export sample data generators for testing/demos
 export {
   generateHistoricalPrices,
   getMarketEvents,
+  generateOHLCData,
+  generateChartData,
+  generateHeatmapData,
+  generateTreemapData,
 } from './utils/sample-data.js';
 
-// Export style utilities for custom components
-export { highchartsThemeStyles } from './styles/highcharts-theme.js';
-export { chartHeaderStyles } from './styles/chart-header.js';
-export { eventModalStyles } from './styles/event-modal.js';
-
-// Export market event utilities
+// Export market event constants for customization
 export { DEFAULT_EVENT_COLORS, EVENT_TYPE_LABELS } from './utils/market-event-constants.js';
-export { createMarkerSvg, getMarkerHeight, STEM_HEIGHTS, LUCIDE_ICONS } from './utils/market-event-icons.js';
 
 // Library version
 export const VERSION = '0.1.0';

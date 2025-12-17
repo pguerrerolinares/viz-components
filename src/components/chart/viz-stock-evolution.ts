@@ -1,11 +1,11 @@
 import { html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { createRef, ref } from 'lit/directives/ref.js';
+import { ref } from 'lit/directives/ref.js';
 import Highcharts from 'highcharts/highstock';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
 import 'highcharts/themes/adaptive';
 
-import { VizBaseComponent } from '../../base/viz-base-component.js';
+import { VizStockChartBase } from '../../base/viz-stock-chart-base.js';
 import { highchartsThemeStyles } from '../../styles/highcharts-theme.js';
 import { chartHeaderStyles } from '../../styles/chart-header.js';
 import { generateHistoricalPrices, getMarketEvents } from '../../utils/sample-data.js';
@@ -32,7 +32,7 @@ const CLOSE_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
  * Shows historical price evolution with major market event flags
  */
 @customElement('viz-stock-evolution')
-export class VizStockEvolution extends VizBaseComponent {
+export class VizStockEvolution extends VizStockChartBase {
   /** Chart configuration options */
   @property({ type: Object })
   config: StockEvolutionConfig = {};
@@ -45,26 +45,11 @@ export class VizStockEvolution extends VizBaseComponent {
   @property({ type: Array })
   events: MarketEvent[] = [];
 
-  /** Enable demo mode with sample data */
-  @property({ type: Boolean })
-  demo = false;
-
   @state()
   private selectedEvent: MarketEvent | null = null;
 
-  @state()
-  private changeInfo: { change: number; percent: number; direction: 'up' | 'down' } = {
-    change: 0,
-    percent: 0,
-    direction: 'up',
-  };
-
-  private chart: Highcharts.Chart | null = null;
-  private containerRef = createRef<HTMLDivElement>();
-  private lastPrice = 0;
-
   static override styles = [
-    ...VizBaseComponent.styles,
+    ...VizStockChartBase.styles,
     highchartsThemeStyles,
     chartHeaderStyles,
     css`
@@ -74,86 +59,27 @@ export class VizStockEvolution extends VizBaseComponent {
     `,
   ];
 
-  override connectedCallback(): void {
-    super.connectedCallback();
-    this.setupThemeObserver();
-
-    if (this.demo && this.prices.length === 0) {
-      this.loadDemoData();
-    }
+  protected override getWatchedProperties(): string[] {
+    return ['prices', 'events', 'config', 'theme', 'demo'];
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this.chart?.destroy();
-    this.chart = null;
-    this.cleanupThemeObserver();
+  protected override loadDemoData(): void {
+    if (this.prices.length > 0) return;
+    this.prices = generateHistoricalPrices();
+    this.events = getMarketEvents();
   }
 
   protected override updated(changedProperties: Map<string, unknown>): void {
-    if (changedProperties.has('demo') && this.demo && this.prices.length === 0) {
-      this.loadDemoData();
-    }
-
-    const needsChartUpdate =
-      !this.chart ||
-      changedProperties.has('prices') ||
-      changedProperties.has('events') ||
-      changedProperties.has('config') ||
-      changedProperties.has('theme');
-
-    if (needsChartUpdate) {
-      this.updateChart();
-    }
+    super.updated(changedProperties);
 
     if (changedProperties.has('prices')) {
       this.updateChangeInfo();
     }
   }
 
-  protected override updateTheme(): void {
-    const container = this.containerRef.value;
-    if (!container) return;
-
-    this.applyHighchartsThemeClass(container);
-
-    if (this.chart) {
-      const primaryColor = this.getPrimaryColor();
-      const xAxis = this.chart.xAxis[0];
-      const extremes = xAxis?.getExtremes();
-
-      this.chart.update(
-        {
-          rangeSelector: {
-            buttonTheme: {
-              states: {
-                hover: { fill: primaryColor, style: { color: '#ffffff' } },
-                select: { fill: primaryColor, style: { color: '#ffffff', fontWeight: 'bold' } },
-              },
-            },
-          },
-        },
-        false,
-        false,
-        false
-      );
-
-      if (xAxis && extremes?.userMin !== undefined) {
-        xAxis.setExtremes(extremes.userMin, extremes.userMax, true, false);
-      } else {
-        this.chart.redraw();
-      }
-    }
-  }
-
-  private loadDemoData(): void {
-    this.prices = generateHistoricalPrices();
-    this.events = getMarketEvents();
-  }
-
   private updateChangeInfo(): void {
     if (this.prices.length < 2) {
-      this.changeInfo = { change: 0, percent: 0, direction: 'up' };
+      this.cachedChangeInfo = { change: 0, percent: 0, direction: 'up' };
       return;
     }
 
@@ -161,9 +87,7 @@ export class VizStockEvolution extends VizBaseComponent {
     const last = this.prices[this.prices.length - 1];
     if (!first || !last) return;
 
-    const change = last.price - first.price;
-    const percent = (change / first.price) * 100;
-    this.changeInfo = { change, percent, direction: change >= 0 ? 'up' : 'down' };
+    this.cachedChangeInfo = this.calculateChange(last.price, first.price);
   }
 
   /** Binary search to find price at a given timestamp - O(log n) */
@@ -343,14 +267,13 @@ export class VizStockEvolution extends VizBaseComponent {
     return yAxis;
   }
 
-  private updateChart(): void {
+  protected override updateChart(): void {
     const container = this.containerRef.value;
     if (!container || this.prices.length === 0) return;
 
     this.applyHighchartsThemeClass(container);
 
     const cfg = this.config;
-    const primaryColor = this.getPrimaryColor();
     const lastPoint = this.prices[this.prices.length - 1];
     if (lastPoint) this.lastPrice = lastPoint.price;
 
@@ -362,22 +285,8 @@ export class VizStockEvolution extends VizBaseComponent {
         : {
             rangeSelector: {
               selected: 4,
-              buttons: [
-                { type: 'year', count: 1, text: '1Y' },
-                { type: 'year', count: 5, text: '5Y' },
-                { type: 'year', count: 10, text: '10Y' },
-                { type: 'year', count: 20, text: '20Y' },
-                { type: 'all', text: 'All' },
-              ],
-              buttonTheme: {
-                fill: 'transparent',
-                'stroke-width': 1,
-                r: 4,
-                states: {
-                  hover: { fill: primaryColor, style: { color: '#ffffff' } },
-                  select: { fill: primaryColor, style: { color: '#ffffff', fontWeight: 'bold' } },
-                },
-              },
+              buttons: this.buildLongTermButtons(),
+              buttonTheme: this.buildRangeSelectorButtonTheme(),
             },
           }),
       navigator: { enabled: true },
@@ -404,19 +313,16 @@ export class VizStockEvolution extends VizBaseComponent {
     };
 
     if (this.chart) {
-      const xAxis = this.chart.xAxis[0];
-      const extremes = xAxis?.getExtremes();
-      this.chart.update(options, true, true);
-      if (xAxis && extremes?.userMin !== undefined) {
-        xAxis.setExtremes(extremes.userMin, extremes.userMax, true, false);
-      }
+      this.preserveExtremesAndUpdate(() => {
+        this.chart!.update(options, true, true);
+      });
     } else {
       this.chart = Highcharts.stockChart(container, options);
     }
   }
 
   protected override render() {
-    const { change, percent, direction } = this.changeInfo;
+    const { change, percent, direction } = this.cachedChangeInfo;
     const cfg = this.config;
 
     return html`

@@ -1,11 +1,11 @@
 import { html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { createRef, ref } from 'lit/directives/ref.js';
+import { ref } from 'lit/directives/ref.js';
 import Highcharts from 'highcharts/highstock';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
-import { VizBaseComponent } from '../../base/viz-base-component.js';
-import { updateHighchartsThemeDOM } from '../../utils/highcharts-theme.js';
+import { VizHighchartsComponent } from '../../base/viz-highcharts-component.js';
+import { generateHeatmapData } from '../../utils/sample-data.js';
 import type { HeatmapDataPoint, HeatmapConfig } from '../../types/index.js';
 
 // Initialize Highcharts modules
@@ -21,7 +21,7 @@ if (typeof HighchartsAccessibility === 'function') {
  * Displays data intensity in a grid format
  */
 @customElement('viz-heatmap')
-export class VizHeatmap extends VizBaseComponent {
+export class VizHeatmap extends VizHighchartsComponent {
   @property({ type: Array })
   data: HeatmapDataPoint[] = [];
 
@@ -37,14 +37,8 @@ export class VizHeatmap extends VizBaseComponent {
   @property({ type: Array, attribute: 'y-categories' })
   yCategories: string[] = [];
 
-  // theme property inherited from VizBaseComponent
-
-  private chart: Highcharts.Chart | null = null;
-  private containerRef = createRef<HTMLDivElement>();
-  // themeObserver inherited from VizBaseComponent
-
   static override styles = [
-    ...VizBaseComponent.styles,
+    ...VizHighchartsComponent.styles,
     css`
       :host {
         display: block;
@@ -59,81 +53,28 @@ export class VizHeatmap extends VizBaseComponent {
     `,
   ];
 
-  override connectedCallback(): void {
-    super.connectedCallback();
-    this.setupThemeObserver();
+  protected override getWatchedProperties(): string[] {
+    return ['data', 'config', 'chartTitle', 'xCategories', 'yCategories', 'theme', 'demo'];
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    if (this.chart) {
-      this.chart.destroy();
-      this.chart = null;
-    }
-    this.cleanupThemeObserver();
+  protected override loadDemoData(): void {
+    if (this.data.length > 0) return;
+    const demoData = generateHeatmapData();
+    this.data = demoData.data;
+    this.xCategories = demoData.xCategories;
+    this.yCategories = demoData.yCategories;
   }
 
-  protected override updated(changedProperties: Map<string, unknown>): void {
-    // Only update chart when needed
-    const needsChartUpdate =
-      !this.chart ||
-      changedProperties.has('data') ||
-      changedProperties.has('config') ||
-      changedProperties.has('chartTitle') ||
-      changedProperties.has('xCategories') ||
-      changedProperties.has('yCategories') ||
-      changedProperties.has('theme');
-
-    if (needsChartUpdate) {
-      this.updateChart();
-    }
-  }
-
-  // setupThemeObserver() inherited from VizBaseComponent with debouncing
-
-  protected override updateTheme(): void {
-    if (!this.chart) return;
-
-    const theme = this.getThemeColors();
-    const isDark = theme.background !== '#ffffff';
-
-    // Update only chart background and tooltip via Highcharts API
-    this.chart.update(
-      {
-        chart: {
-          backgroundColor: theme.background,
-        },
-        tooltip: {
-          backgroundColor: theme.background,
-          style: { color: theme.text },
-        },
-      },
-      false,
-      false,
-      false
-    );
-
-    this.chart.redraw(false);
-
-    // Update other colors via DOM manipulation to preserve layout
+  protected override updateChart(): void {
     const container = this.containerRef.value;
-    if (!container) return;
-
-    updateHighchartsThemeDOM(container, theme, isDark);
-  }
-
-  private updateChart(): void {
-    const container = this.containerRef.value;
-    if (!container) return;
+    if (!container || this.data.length === 0) return;
 
     const theme = this.getThemeColors();
     const cfg = this.config;
 
     // Merge x/y categories from attributes or config
-    const xCats =
-      this.xCategories.length > 0 ? this.xCategories : cfg.xCategories;
-    const yCats =
-      this.yCategories.length > 0 ? this.yCategories : cfg.yCategories;
+    const xCats = this.xCategories.length > 0 ? this.xCategories : cfg.xCategories;
+    const yCats = this.yCategories.length > 0 ? this.yCategories : cfg.yCategories;
 
     // Transform data to Highcharts format
     const seriesData = this.data.map((point) => [point.x, point.y, point.value]);

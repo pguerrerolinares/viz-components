@@ -1,35 +1,18 @@
 import { html, css } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
-import { createRef, ref } from 'lit/directives/ref.js';
+import { customElement, property } from 'lit/decorators.js';
+import { ref } from 'lit/directives/ref.js';
 import Highcharts from 'highcharts/highstock';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
 import 'highcharts/themes/adaptive';
-import { VizBaseComponent } from '../../base/viz-base-component.js';
+import { VizStockChartBase } from '../../base/viz-stock-chart-base.js';
 import { highchartsThemeStyles } from '../../styles/highcharts-theme.js';
 import { chartHeaderStyles } from '../../styles/chart-header.js';
+import { generateOHLCData } from '../../utils/sample-data.js';
+import type { OHLCDataPoint, StockChartConfig } from '../../types/index.js';
 
 // Initialize Highcharts modules
 if (typeof HighchartsAccessibility === 'function') {
   (HighchartsAccessibility as unknown as (hc: typeof Highcharts) => void)(Highcharts);
-}
-
-export interface OHLCDataPoint {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume?: number;
-}
-
-export interface StockChartConfig {
-  title?: string;
-  symbol?: string;
-  currency?: string;
-  showVolume?: boolean;
-  realtime?: boolean;
-  realtimeInterval?: number;
-  highcharts?: Record<string, unknown>;
 }
 
 /**
@@ -37,31 +20,17 @@ export interface StockChartConfig {
  * Demonstrates Highcharts Stock power with real-time updates
  */
 @customElement('viz-stock-chart')
-export class VizStockChart extends VizBaseComponent {
+export class VizStockChart extends VizStockChartBase {
   @property({ type: Array })
   data: OHLCDataPoint[] = [];
 
   @property({ type: Object })
   config: StockChartConfig = {};
 
-  // theme property inherited from VizBaseComponent
-
-  private chart: Highcharts.Chart | null = null;
-  private containerRef = createRef<HTMLDivElement>();
-  // themeObserver inherited from VizBaseComponent
   private realtimeTimer: ReturnType<typeof setInterval> | null = null;
-  private lastPrice = 0;
-
-  /** Cached change info to avoid recalculation on every render */
-  @state()
-  private cachedChangeInfo: { change: number; percent: number; direction: 'up' | 'down' } = {
-    change: 0,
-    percent: 0,
-    direction: 'up',
-  };
 
   static override styles = [
-    ...VizBaseComponent.styles,
+    ...VizStockChartBase.styles,
     highchartsThemeStyles,
     chartHeaderStyles,
     css`
@@ -99,39 +68,24 @@ export class VizStockChart extends VizBaseComponent {
     `,
   ];
 
-  override connectedCallback(): void {
-    super.connectedCallback();
-    this.setupThemeObserver();
+  protected override getWatchedProperties(): string[] {
+    return ['config', 'theme', 'demo'];
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this.stopRealtime();
-    if (this.chart) {
-      this.chart.destroy();
-      this.chart = null;
-    }
-    this.cleanupThemeObserver();
+  protected override loadDemoData(): void {
+    if (this.data.length > 0) return;
+    this.data = generateOHLCData(100);
   }
 
   protected override updated(changedProperties: Map<string, unknown>): void {
-    // Only create/update chart when needed, not for every data change
-    // Realtime updates use addPoint() directly, so we skip updateChart() for data-only changes
-    const needsChartUpdate =
-      !this.chart ||
-      changedProperties.has('config') ||
-      changedProperties.has('theme') ||
-      (changedProperties.has('data') && !this.realtimeTimer);
-
-    if (needsChartUpdate) {
-      this.updateChart();
-    }
+    super.updated(changedProperties);
 
     // Update cached change info when data changes
     if (changedProperties.has('data')) {
       this.updateCachedChangeInfo();
     }
 
+    // Handle realtime toggle
     if (this.config.realtime && !this.realtimeTimer) {
       this.startRealtime();
     } else if (!this.config.realtime && this.realtimeTimer) {
@@ -139,31 +93,9 @@ export class VizStockChart extends VizBaseComponent {
     }
   }
 
-  // isDarkMode(), getPrimaryColor(), applyHighchartsThemeClass() inherited from VizBaseComponent
-
-  protected override updateTheme(): void {
-    const container = this.containerRef.value;
-    if (!container) return;
-
-    // Apply theme class to container - CSS custom properties will cascade to chart
-    this.applyHighchartsThemeClass(container);
-
-    // Force chart to re-read CSS custom property values
-    if (this.chart) {
-      // Save zoom state
-      const xAxis = this.chart.xAxis[0];
-      const extremes = xAxis?.getExtremes();
-
-      // Batch: suppress redraw on update, let setExtremes handle final redraw
-      this.chart.update({}, false, false, false);
-
-      // Restore zoom state with single redraw
-      if (xAxis && extremes && extremes.userMin !== undefined) {
-        xAxis.setExtremes(extremes.userMin, extremes.userMax, true, false);
-      } else {
-        this.chart.redraw();
-      }
-    }
+  override disconnectedCallback(): void {
+    this.stopRealtime();
+    super.disconnectedCallback();
   }
 
   private startRealtime(): void {
@@ -183,7 +115,6 @@ export class VizStockChart extends VizBaseComponent {
   private addRealtimePoint(): void {
     if (!this.chart) return;
 
-    // Use series IDs instead of indices for robustness
     const ohlcSeries = this.chart.get('ohlc') as Highcharts.Series | undefined;
     const volumeSeries = this.chart.get('volume') as Highcharts.Series | undefined;
     if (!ohlcSeries) return;
@@ -205,14 +136,13 @@ export class VizStockChart extends VizBaseComponent {
 
     const newPoint: OHLCDataPoint = { time, open, high, low, close, volume };
 
-    // Efficient array management: shift+push instead of slice+spread
+    // Efficient array management
     if (this.data.length >= 500) {
       this.data.shift();
     }
     this.data.push(newPoint);
     this.lastPrice = close;
 
-    // Update cached change info
     this.updateCachedChangeInfo();
 
     // Update chart with animation
@@ -221,7 +151,7 @@ export class VizStockChart extends VizBaseComponent {
       volumeSeries.addPoint([time, volume], true, true, false);
     }
 
-    // Dispatch event for parent to react
+    // Dispatch event
     this.dispatchEvent(
       new CustomEvent('price-update', {
         detail: { ...newPoint, change: close - open, changePercent: ((close - open) / open) * 100 },
@@ -231,25 +161,19 @@ export class VizStockChart extends VizBaseComponent {
     );
   }
 
-  private updateChart(): void {
+  protected override updateChart(): void {
     const container = this.containerRef.value;
     if (!container || this.data.length === 0) return;
 
-    // Apply initial theme class to container
     this.applyHighchartsThemeClass(container);
 
     const cfg = this.config;
-    const primaryColor = this.getPrimaryColor();
+    const lastPoint = this.data[this.data.length - 1];
+    if (lastPoint) this.lastPrice = lastPoint.close;
 
     // Transform data to Highcharts format
     const ohlcData = this.data.map((d) => [d.time, d.open, d.high, d.low, d.close]);
     const volumeData = this.data.map((d) => [d.time, d.volume ?? 0]);
-
-    // Set last price for header
-    const lastPoint = this.data[this.data.length - 1];
-    if (lastPoint) {
-      this.lastPrice = lastPoint.close;
-    }
 
     const series: Highcharts.SeriesOptionsType[] = [
       {
@@ -261,14 +185,10 @@ export class VizStockChart extends VizBaseComponent {
         upColor: '#22c55e',
         lineColor: '#ef4444',
         upLineColor: '#22c55e',
-        tooltip: {
-          valueDecimals: 2,
-          valuePrefix: cfg.currency ?? '$',
-        },
+        tooltip: { valueDecimals: 2, valuePrefix: cfg.currency ?? '$' },
       },
     ];
 
-    // Volume series
     if (cfg.showVolume !== false) {
       series.push({
         type: 'column',
@@ -280,50 +200,22 @@ export class VizStockChart extends VizBaseComponent {
       });
     }
 
-    // Let adaptive theme handle colors via CSS custom properties
     const options: Highcharts.Options = {
-      chart: {
-        style: { fontFamily: 'inherit' },
-        animation: true,
-      },
+      chart: { style: { fontFamily: 'inherit' }, animation: true },
       title: { text: '' },
       rangeSelector: {
-        // Only set selected on initial creation, not on updates (to preserve user selection)
         ...(this.chart ? {} : { selected: 1 }),
-        buttons: [
-          { type: 'hour', count: 1, text: '1H' },
-          { type: 'day', count: 1, text: '1D' },
-          { type: 'week', count: 1, text: '1W' },
-          { type: 'month', count: 1, text: '1M' },
-          { type: 'month', count: 3, text: '3M' },
-          { type: 'year', count: 1, text: '1Y' },
-          { type: 'all', text: 'All' },
-        ],
-        buttonTheme: {
-          fill: 'transparent',
-          'stroke-width': 1,
-          r: 4,
-          states: {
-            hover: { fill: primaryColor, style: { color: '#ffffff' } },
-            select: { fill: primaryColor, style: { color: '#ffffff', fontWeight: 'bold' } },
-          },
-        },
+        buttons: this.buildShortTermButtons(),
+        buttonTheme: this.buildRangeSelectorButtonTheme(),
       },
-      navigator: {
-        enabled: true,
-      },
-      scrollbar: {
-        enabled: true,
-      },
+      navigator: { enabled: true },
+      scrollbar: { enabled: true },
       xAxis: {
         type: 'datetime',
         gridLineWidth: 1,
         crosshair: {
           dashStyle: 'Dash',
-          label: {
-            enabled: true,
-            style: { color: '#ffffff' },
-          },
+          label: { enabled: true, style: { color: '#ffffff' } },
         },
       },
       yAxis: [
@@ -347,27 +239,17 @@ export class VizStockChart extends VizBaseComponent {
           },
         },
         {
-          labels: {
-            align: 'right',
-            x: -5,
-          },
+          labels: { align: 'right', x: -5 },
           top: '75%',
           height: '25%',
           offset: 0,
           lineWidth: 1,
         },
       ],
-      tooltip: {
-        split: true,
-        shadow: true,
-      },
+      tooltip: { split: true, shadow: true },
       plotOptions: {
-        candlestick: {
-          lineWidth: 1,
-        },
-        series: {
-          animation: { duration: 300 },
-        },
+        candlestick: { lineWidth: 1 },
+        series: { animation: { duration: 300 } },
       },
       series,
       credits: { enabled: false },
@@ -375,13 +257,14 @@ export class VizStockChart extends VizBaseComponent {
     };
 
     if (this.chart) {
-      this.chart.update(options, true, true);
+      this.preserveExtremesAndUpdate(() => {
+        this.chart!.update(options, true, true);
+      });
     } else {
       this.chart = Highcharts.stockChart(container, options);
     }
   }
 
-  /** Updates the cached change info - called when data changes */
   private updateCachedChangeInfo(): void {
     if (this.data.length < 2) {
       this.cachedChangeInfo = { change: 0, percent: 0, direction: 'up' };
@@ -390,19 +273,9 @@ export class VizStockChart extends VizBaseComponent {
 
     const current = this.data[this.data.length - 1];
     const previous = this.data[this.data.length - 2];
-    if (!current || !previous) {
-      this.cachedChangeInfo = { change: 0, percent: 0, direction: 'up' };
-      return;
-    }
+    if (!current || !previous) return;
 
-    const change = current.close - previous.close;
-    const percent = (change / previous.close) * 100;
-
-    this.cachedChangeInfo = {
-      change,
-      percent,
-      direction: change >= 0 ? 'up' : 'down',
-    };
+    this.cachedChangeInfo = this.calculateChange(current.close, previous.close);
   }
 
   protected override render() {
@@ -442,12 +315,10 @@ export class VizStockChart extends VizBaseComponent {
     this.updateCachedChangeInfo();
 
     if (this.chart) {
-      // Use series IDs instead of indices for robustness
       const ohlcSeries = this.chart.get('ohlc') as Highcharts.Series | undefined;
       const volumeSeries = this.chart.get('volume') as Highcharts.Series | undefined;
 
       ohlcSeries?.addPoint([point.time, point.open, point.high, point.low, point.close], true, true, true);
-      // Respect showVolume config (consistent with addRealtimePoint)
       if (volumeSeries && point.volume && this.config.showVolume !== false) {
         volumeSeries.addPoint([point.time, point.volume], true, true, false);
       }

@@ -25,6 +25,10 @@ bun add @pguerrerolinares/viz-components highcharts
 Universal chart component supporting line, bar, column, pie, and area charts.
 
 ```html
+<!-- Demo mode with sample data -->
+<viz-chart demo type="line"></viz-chart>
+
+<!-- With custom data -->
 <viz-chart
   type="line"
   data='[{"name": "Sales", "data": [30, 40, 35, 50, 49]}]'
@@ -34,6 +38,7 @@ Universal chart component supporting line, bar, column, pie, and area charts.
 ```
 
 **Attributes:**
+- `demo` - Enable demo mode with sample data
 - `type` - Chart type: `line`, `bar`, `column`, `pie`, `area`
 - `data` - JSON array of series data
 - `categories` - JSON array of x-axis categories
@@ -75,6 +80,10 @@ Pass any [Highcharts options](https://api.highcharts.com/highcharts/) via the `c
 Real-time candlestick chart with OHLC data and volume.
 
 ```html
+<!-- Demo mode with sample OHLC data -->
+<viz-stock-chart demo config='{"symbol": "AAPL", "realtime": true}'></viz-stock-chart>
+
+<!-- With custom data -->
 <viz-stock-chart
   data='[{"time": 1702900800000, "open": 100, "high": 105, "low": 98, "close": 103, "volume": 1000000}]'
   config='{"symbol": "AAPL", "currency": "$", "showVolume": true, "realtime": true}'
@@ -83,6 +92,7 @@ Real-time candlestick chart with OHLC data and volume.
 ```
 
 **Attributes:**
+- `demo` - Enable demo mode with sample OHLC data (100 days)
 - `data` - JSON array of OHLC data points with `time`, `open`, `high`, `low`, `close`, `volume`
 - `config` - JSON object with:
   - `symbol` - Stock symbol to display
@@ -105,17 +115,23 @@ Real-time candlestick chart with OHLC data and volume.
 Historical stock evolution chart with market event markers.
 
 ```html
+<!-- Demo mode with sample data -->
+<viz-stock-evolution demo></viz-stock-evolution>
+
+<!-- With custom data -->
 <viz-stock-evolution
-  config='{"symbol": "S&P 500", "currency": "$", "showEvents": true, "showVolume": false}'
-  theme="auto"
+  .prices=${myPrices}
+  .events=${myEvents}
+  config='{"symbol": "NASDAQ", "currency": "$"}'
 ></viz-stock-evolution>
 ```
 
 **Attributes:**
-- `prices` - JSON array of price points with `time`, `price`, `volume`
-- `events` - JSON array of market events with `date`, `title`, `description`, `type`
+- `demo` - Enable demo mode with sample S&P 500 data (2000-2024)
+- `prices` - Array of price points with `time`, `price`, `volume`
+- `events` - Array of market events with `date`, `title`, `description`, `type`
 - `config` - JSON object with:
-  - `symbol` - Symbol name to display
+  - `symbol` - Symbol name to display (default: "S&P 500")
   - `currency` - Currency symbol (default: "$")
   - `showEvents` - Show event markers (default: true)
   - `showVolume` - Show volume bars (default: false)
@@ -134,8 +150,6 @@ Historical stock evolution chart with market event markers.
 **Methods:**
 - `setData(prices, events?)` - Set price and event data
 - `addEvent(event)` - Add a new market event
-
-**Note:** If no data is provided, sample S&P 500 historical data (2000-2024) is loaded automatically for demonstration.
 
 ### viz-dashboard
 
@@ -198,6 +212,10 @@ Interactive data table with sorting, filtering, and pagination.
 Heatmap visualization for displaying data intensity.
 
 ```html
+<!-- Demo mode with sample data -->
+<viz-heatmap demo title="Weekly Activity"></viz-heatmap>
+
+<!-- With custom data -->
 <viz-heatmap
   title="Weekly Activity"
   data='[{"x": 0, "y": 0, "value": 10}, {"x": 1, "y": 0, "value": 20}]'
@@ -206,16 +224,34 @@ Heatmap visualization for displaying data intensity.
 ></viz-heatmap>
 ```
 
+**Attributes:**
+- `demo` - Enable demo mode with sample weekly activity data
+- `title` - Chart title
+- `data` - JSON array of data points with `x`, `y`, `value`
+- `x-categories` - JSON array of x-axis category labels
+- `y-categories` - JSON array of y-axis category labels
+- `config` - JSON object with `colorAxis` settings and `highcharts` for full customization
+
 ### viz-treemap
 
 Treemap visualization for hierarchical data.
 
 ```html
+<!-- Demo mode with sample data -->
+<viz-treemap demo title="Project Breakdown"></viz-treemap>
+
+<!-- With custom data -->
 <viz-treemap
   title="Project Breakdown"
   data='[{"id": "react", "name": "React", "value": 40}]'
 ></viz-treemap>
 ```
+
+**Attributes:**
+- `demo` - Enable demo mode with sample technology breakdown data
+- `title` - Chart title
+- `data` - JSON array of nodes with `id`, `name`, `value`, optional `parent`
+- `config` - JSON object with `layoutAlgorithm`, `allowDrillDown`, and `highcharts` for full customization
 
 ## Styling
 
@@ -274,7 +310,8 @@ viz-table::part(filter-input) {
 |-----------|-------|
 | viz-chart | `chart` |
 | viz-stock-chart | `header`, `symbol`, `price`, `change`, `live-indicator`, `chart` |
-| viz-stock-evolution | `header`, `symbol`, `price`, `change`, `info`, `chart`, `modal-overlay`, `modal` |
+| viz-stock-evolution | `header`, `symbol`, `price`, `change`, `info`, `chart` |
+| viz-event-modal | `overlay`, `modal` |
 | viz-dashboard | `dashboard` |
 | viz-widget | `widget`, `header`, `title`, `subtitle`, `content`, `footer`, `loading`, `spinner` |
 | viz-table | `wrapper`, `toolbar`, `filter-input`, `table`, `thead`, `tbody` |
@@ -328,6 +365,82 @@ export class AppModule {}
 
 ```html
 <viz-chart [attr.data]="chartData | json"></viz-chart>
+```
+
+### Legacy Projects (JSP, vanilla HTML)
+
+For projects without a module bundler, use the IIFE bundle:
+
+```bash
+# Build the IIFE bundle
+bun run build:iife
+```
+
+```html
+<!-- Include Highcharts (peer dependency) -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/stock.js"></script>
+
+<!-- Include the bundle -->
+<script src="dist/viz-components.bundle.js"></script>
+
+<!-- Use components directly -->
+<viz-chart type="line" data='[{"name": "Sales", "data": [1, 2, 3]}]'></viz-chart>
+<viz-stock-evolution demo></viz-stock-evolution>
+```
+
+Components auto-register when the script loads via `@customElement()` decorators.
+
+## Extending Components
+
+The library exports base classes for creating custom chart components:
+
+```typescript
+import { VizHighchartsComponent } from '@pguerrerolinares/viz-components';
+
+@customElement('my-custom-chart')
+class MyCustomChart extends VizHighchartsComponent {
+  protected getWatchedProperties(): string[] {
+    return ['data', 'config', 'theme', 'demo'];
+  }
+
+  protected loadDemoData(): void {
+    // Load sample data when demo=true
+  }
+
+  protected updateChart(): void {
+    // Create/update Highcharts chart
+    const container = this.containerRef.value;
+    if (!container) return;
+    // ... Highcharts initialization
+  }
+}
+```
+
+**Available base classes:**
+- `VizBaseComponent` - Base for all components (theme, loading, error handling)
+- `VizHighchartsComponent` - Base for Highcharts charts (lifecycle, demo prop, chart management)
+- `VizStockChartBase` - Base for stock charts (zoom preservation, range selector helpers)
+
+## Sample Data Generators
+
+The library exports data generators for testing and development:
+
+```typescript
+import {
+  generateChartData,      // Returns { series, categories } for viz-chart
+  generateOHLCData,       // Returns OHLC data array for viz-stock-chart
+  generateHistoricalPrices, // Returns price data for viz-stock-evolution
+  getMarketEvents,        // Returns market events for viz-stock-evolution
+  generateHeatmapData,    // Returns { data, xCategories, yCategories } for viz-heatmap
+  generateTreemapData,    // Returns nodes array for viz-treemap
+} from '@pguerrerolinares/viz-components';
+
+// Example: programmatically load data
+const chart = document.querySelector('viz-chart');
+const { series, categories } = generateChartData();
+chart.data = series;
+chart.categories = categories;
 ```
 
 ## Browser Support

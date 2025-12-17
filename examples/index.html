@@ -109,7 +109,7 @@
 
   <div class="demo-section">
     <h3>Live Trading View with Technical Indicators</h3>
-    <viz-stock-chart id="stockChart"></viz-stock-chart>
+    <viz-stock-chart demo config='{"symbol": "AAPL", "realtime": true, "realtimeInterval": 2000}'></viz-stock-chart>
   </div>
 
   <!-- Stock Evolution Section -->
@@ -129,12 +129,12 @@
 
   <div class="demo-section">
     <h3>Line Chart</h3>
-    <viz-chart id="lineChart" type="line"></viz-chart>
+    <viz-chart demo type="line" config='{"title": "Monthly Performance"}'></viz-chart>
   </div>
 
   <div class="demo-section">
     <h3>Bar Chart</h3>
-    <viz-chart id="barChart" type="bar"></viz-chart>
+    <viz-chart demo type="bar" config='{"title": "Sales Data"}'></viz-chart>
   </div>
 
   <div class="demo-section">
@@ -170,12 +170,12 @@
 
   <div class="demo-section">
     <h3>Heatmap</h3>
-    <viz-heatmap id="heatmap" title="Weekly Activity"></viz-heatmap>
+    <viz-heatmap demo title="Weekly Activity"></viz-heatmap>
   </div>
 
   <div class="demo-section">
     <h3>Treemap</h3>
-    <viz-treemap id="treemap" title="Project Breakdown"></viz-treemap>
+    <viz-treemap demo title="Project Breakdown"></viz-treemap>
   </div>
 
   <script type="module">
@@ -194,73 +194,7 @@
       customElements.whenDefined('viz-treemap'),
     ]);
 
-    // Generate sample OHLC data (simulating stock prices)
-    function generateOHLCData(days = 100) {
-      const data = [];
-      let price = 150; // Starting price
-      const now = Date.now();
-      const dayMs = 24 * 60 * 60 * 1000;
-
-      for (let i = days; i >= 0; i--) {
-        const time = now - (i * dayMs);
-        const volatility = 0.02;
-        const change = price * volatility * (Math.random() - 0.5) * 2;
-
-        const open = price;
-        const close = price + change;
-        const high = Math.max(open, close) + Math.abs(change) * Math.random();
-        const low = Math.min(open, close) - Math.abs(change) * Math.random();
-        const volume = Math.floor(1000000 + Math.random() * 5000000);
-
-        data.push({ time, open, high, low, close, volume });
-        price = close;
-      }
-
-      return data;
-    }
-
-    // Stock Chart with real-time updates
-    const stockChart = document.getElementById('stockChart');
-    stockChart.setAttribute('data', JSON.stringify(generateOHLCData(100)));
-    stockChart.setAttribute('config', JSON.stringify({
-      symbol: 'AAPL',
-      currency: '$',
-      showVolume: true,
-      realtime: true,
-      realtimeInterval: 2000
-    }));
-
-    // Listen for price updates
-    stockChart.addEventListener('price-update', (e) => {
-      console.log('Price update:', e.detail);
-    });
-
-    // Line Chart Data
-    document.getElementById('lineChart').setAttribute('data', JSON.stringify([
-      { name: 'Sales', data: [30, 40, 35, 50, 49, 60, 70, 91, 125] },
-      { name: 'Revenue', data: [20, 30, 45, 32, 43, 52, 63, 80, 95] }
-    ]));
-    document.getElementById('lineChart').setAttribute('categories', JSON.stringify([
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'
-    ]));
-    document.getElementById('lineChart').setAttribute('config', JSON.stringify({
-      title: 'Monthly Performance',
-      yAxisTitle: 'Value'
-    }));
-
-    // Bar Chart Data
-    document.getElementById('barChart').setAttribute('data', JSON.stringify([
-      { name: 'Q1', data: [120, 200, 150] },
-      { name: 'Q2', data: [180, 250, 200] }
-    ]));
-    document.getElementById('barChart').setAttribute('categories', JSON.stringify([
-      'Product A', 'Product B', 'Product C'
-    ]));
-    document.getElementById('barChart').setAttribute('config', JSON.stringify({
-      title: 'Quarterly Sales'
-    }));
-
-    // Pie Chart Data
+    // Pie Chart Data (custom format, not using demo)
     document.getElementById('pieChart').setAttribute('data', JSON.stringify([
       { name: 'Distribution', data: [
         { name: 'Chrome', y: 64.02 },
@@ -274,7 +208,7 @@
       title: 'Browser Market Share'
     }));
 
-    // Widget Charts
+    // Widget Charts (custom data for specific metrics)
     document.getElementById('widgetChart1').setAttribute('data', JSON.stringify([
       { name: 'Revenue', data: [10, 20, 15, 30, 25, 40] }
     ]));
@@ -310,31 +244,6 @@
       pageSize: 5,
       selectable: true
     }));
-
-    // Heatmap Data
-    document.getElementById('heatmap').setAttribute('data', JSON.stringify([
-      { x: 0, y: 0, value: 10 }, { x: 0, y: 1, value: 19 }, { x: 0, y: 2, value: 8 },
-      { x: 1, y: 0, value: 92 }, { x: 1, y: 1, value: 58 }, { x: 1, y: 2, value: 78 },
-      { x: 2, y: 0, value: 35 }, { x: 2, y: 1, value: 15 }, { x: 2, y: 2, value: 123 },
-      { x: 3, y: 0, value: 72 }, { x: 3, y: 1, value: 132 }, { x: 3, y: 2, value: 52 },
-      { x: 4, y: 0, value: 38 }, { x: 4, y: 1, value: 28 }, { x: 4, y: 2, value: 98 },
-    ]));
-    document.getElementById('heatmap').setAttribute('x-categories', JSON.stringify([
-      'Mon', 'Tue', 'Wed', 'Thu', 'Fri'
-    ]));
-    document.getElementById('heatmap').setAttribute('y-categories', JSON.stringify([
-      'Morning', 'Afternoon', 'Evening'
-    ]));
-
-    // Treemap Data (flat structure - no hierarchy for simplicity)
-    document.getElementById('treemap').setAttribute('data', JSON.stringify([
-      { id: 'react', name: 'React', value: 40 },
-      { id: 'vue', name: 'Vue', value: 25 },
-      { id: 'angular', name: 'Angular', value: 20 },
-      { id: 'node', name: 'Node.js', value: 35 },
-      { id: 'python', name: 'Python', value: 30 },
-      { id: 'go', name: 'Go', value: 15 },
-    ]));
   </script>
 </body>
 </html>

@@ -12,7 +12,8 @@ Framework-agnostic Web Components library for data visualization. Uses **Lit** f
 
 ```bash
 bun install          # Install dependencies
-bun run build        # Build for production (minified + sourcemaps)
+bun run build        # Build ESM for production (minified + sourcemaps)
+bun run build:iife   # Build IIFE bundle for legacy projects (JSP, vanilla HTML)
 bun run dev          # Build in watch mode
 bun run build:types  # Generate TypeScript declarations
 bun run typecheck    # TypeScript type checking
@@ -25,12 +26,15 @@ bun run serve        # Run local dev server for examples
 src/
 ├── index.ts                      # Main exports
 ├── base/
-│   └── viz-base-component.ts     # Abstract base class (extends LitElement)
+│   ├── viz-base-component.ts     # Abstract base class (extends LitElement)
+│   ├── viz-highcharts-component.ts # Base for all Highcharts charts
+│   └── viz-stock-chart-base.ts   # Base for stock charts (zoom, range selectors)
 ├── components/
 │   ├── chart/
 │   │   ├── viz-chart.ts          # Line/bar/pie/area charts
 │   │   ├── viz-stock-chart.ts    # Real-time candlestick chart
-│   │   └── viz-stock-evolution.ts # Historical stock evolution with events
+│   │   ├── viz-stock-evolution.ts # Historical stock evolution with events
+│   │   └── viz-event-modal.ts    # Market event detail modal
 │   ├── dashboard/
 │   │   ├── viz-dashboard.ts      # Grid layout container
 │   │   └── viz-widget.ts         # Widget wrapper
@@ -41,9 +45,13 @@ src/
 │       └── viz-treemap.ts        # Treemap visualization
 ├── styles/
 │   ├── highcharts-theme.ts       # Shared Highcharts theme CSS variables
-│   └── chart-header.ts           # Shared chart header styles
+│   ├── chart-header.ts           # Shared chart header styles
+│   └── event-modal.ts            # Market event modal styles
 ├── utils/
-│   └── sample-data.ts            # Sample data generators for demos
+│   ├── sample-data.ts            # Sample data generators for demos
+│   ├── market-event-constants.ts # Event colors and labels
+│   ├── market-event-icons.ts     # SVG icons and marker generators
+│   └── highcharts-theme.ts       # DOM theme update utilities
 └── types/
     └── index.ts                  # TypeScript definitions
 ```
@@ -55,6 +63,23 @@ src/
 - **Highcharts** 12.x - Charting library (peer dependency)
 - **Bun** - Bundler and runtime
 - **TypeScript** - Strict mode, ES2020 target
+
+### Component Hierarchy
+
+```
+LitElement
+└── VizBaseComponent (theme, loading, error handling)
+    ├── VizWidget
+    ├── VizDashboard
+    ├── VizTable
+    └── VizHighchartsComponent (chart lifecycle, demo prop)
+        ├── VizChart
+        ├── VizHeatmap
+        ├── VizTreemap
+        └── VizStockChartBase (zoom preservation, range selectors)
+            ├── VizStockChart
+            └── VizStockEvolution
+```
 
 ### Key Patterns
 
@@ -93,27 +118,108 @@ class VizMyComponent extends VizBaseComponent {
 
 ## Components
 
-| Component | Tag | Description |
-|-----------|-----|-------------|
-| VizChart | `<viz-chart>` | Line, bar, column, pie, area charts |
-| VizStockChart | `<viz-stock-chart>` | Real-time candlestick chart with OHLC data |
-| VizStockEvolution | `<viz-stock-evolution>` | Historical stock evolution with market events |
-| VizDashboard | `<viz-dashboard>` | Grid/masonry/flex layout container |
-| VizWidget | `<viz-widget>` | Widget wrapper with header and slots |
-| VizTable | `<viz-table>` | Sortable, filterable, paginated table |
-| VizHeatmap | `<viz-heatmap>` | Heatmap visualization |
-| VizTreemap | `<viz-treemap>` | Treemap visualization |
+| Component | Tag | Demo | Description |
+|-----------|-----|------|-------------|
+| VizChart | `<viz-chart>` | Yes | Line, bar, column, pie, area charts |
+| VizStockChart | `<viz-stock-chart>` | Yes | Real-time candlestick chart with OHLC data |
+| VizStockEvolution | `<viz-stock-evolution>` | Yes | Historical stock evolution with market events |
+| VizEventModal | `<viz-event-modal>` | - | Market event detail modal (used by VizStockEvolution) |
+| VizDashboard | `<viz-dashboard>` | - | Grid/masonry/flex layout container |
+| VizWidget | `<viz-widget>` | - | Widget wrapper with header and slots |
+| VizTable | `<viz-table>` | - | Sortable, filterable, paginated table |
+| VizHeatmap | `<viz-heatmap>` | Yes | Heatmap visualization |
+| VizTreemap | `<viz-treemap>` | Yes | Treemap visualization |
+
+### Demo Prop Pattern
+
+Chart components support a `demo` boolean attribute that loads sample data automatically:
+
+```html
+<viz-chart demo type="line"></viz-chart>
+<viz-stock-chart demo></viz-stock-chart>
+<viz-stock-evolution demo></viz-stock-evolution>
+<viz-heatmap demo></viz-heatmap>
+<viz-treemap demo></viz-treemap>
+```
+
+This is handled automatically by `VizHighchartsComponent` base class - components just implement `loadDemoData()`.
+
+### Extending VizHighchartsComponent
+
+To create a new Highcharts-based component:
+
+```typescript
+import { html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { ref } from 'lit/directives/ref.js';
+import { VizHighchartsComponent } from '../base/viz-highcharts-component.js';
+
+@customElement('viz-my-chart')
+export class VizMyChart extends VizHighchartsComponent {
+  @property({ type: Array })
+  data: unknown[] = [];
+
+  static override styles = [
+    ...VizHighchartsComponent.styles,
+    css`:host { display: block; min-height: 400px; }`
+  ];
+
+  // Which properties trigger chart update
+  protected override getWatchedProperties(): string[] {
+    return ['data', 'config', 'theme', 'demo'];
+  }
+
+  // Load sample data when demo=true
+  protected override loadDemoData(): void {
+    this.data = [/* sample data */];
+  }
+
+  // Create/update the Highcharts chart
+  protected override updateChart(): void {
+    const container = this.containerRef.value;
+    if (!container) return;
+
+    // this.chart is managed by base class
+    if (this.chart) {
+      this.chart.update({ /* options */ });
+    } else {
+      this.chart = Highcharts.chart(container, { /* options */ });
+    }
+  }
+
+  protected override render() {
+    return html`<div ${ref(this.containerRef)}></div>`;
+  }
+}
+```
+
+### Sample Data Generators
+
+Located in `src/utils/sample-data.ts`, exported from main index:
+
+| Generator | Returns | Used by |
+|-----------|---------|---------|
+| `generateChartData()` | `{ series, categories }` | viz-chart |
+| `generateOHLCData(days)` | `OHLCDataPoint[]` | viz-stock-chart |
+| `generateHistoricalPrices()` | `PriceDataPoint[]` | viz-stock-evolution |
+| `getMarketEvents()` | `MarketEvent[]` | viz-stock-evolution |
+| `generateHeatmapData()` | `{ data, xCategories, yCategories }` | viz-heatmap |
+| `generateTreemapData()` | `TreemapNode[]` | viz-treemap |
 
 ## Code Conventions
 
 - No `any` types - use `unknown` or proper types
-- All components extend `VizBaseComponent`
+- Use appropriate base class:
+  - `VizBaseComponent` - Non-chart components (dashboard, widget, table)
+  - `VizHighchartsComponent` - Basic Highcharts charts
+  - `VizStockChartBase` - Stock/financial charts with zoom
 - Use `@property()` for public reactive attributes
 - Use `@state()` for private reactive state
 - Always provide CSS custom property fallbacks
 - Use `@customElement()` decorator for registration
 - Shadow DOM for style encapsulation
 - Use `override` keyword for inherited methods
+- Implement abstract methods: `getWatchedProperties()`, `loadDemoData()`, `updateChart()`
 
 ## Highcharts Stock Charts - Dark Mode & Adaptive Theme
 
@@ -234,5 +340,28 @@ this.chart.update({
 
 ### Files Implementing This Pattern
 
-- `src/components/chart/viz-stock-chart.ts`
-- `src/components/chart/viz-stock-evolution.ts`
+- `src/base/viz-stock-chart-base.ts` - Base class with `updateTheme()`, `preserveExtremesAndUpdate()`
+- `src/components/chart/viz-stock-chart.ts` - Extends VizStockChartBase
+- `src/components/chart/viz-stock-evolution.ts` - Extends VizStockChartBase
+
+### VizStockChartBase Utilities
+
+The base class provides reusable helpers:
+
+```typescript
+// Preserve zoom state during chart updates
+this.preserveExtremesAndUpdate(() => {
+  this.chart!.update(options, true, true);
+});
+
+// Calculate price change info
+const info = this.calculateChange(currentPrice, previousPrice);
+// Returns: { change: number, percent: number, direction: 'up' | 'down' }
+
+// Get pre-built range selector buttons
+const buttons = this.buildShortTermButtons(); // 1H, 1D, 1W, 1M, 3M, 1Y, All
+const buttons = this.buildLongTermButtons();  // 1Y, 5Y, 10Y, 20Y, All
+
+// Get themed button styles using --viz-primary
+const theme = this.buildRangeSelectorButtonTheme();
+```

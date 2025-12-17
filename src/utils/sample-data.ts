@@ -1,4 +1,11 @@
-import type { PriceDataPoint, MarketEvent } from '../types/index.js';
+import type {
+  PriceDataPoint,
+  MarketEvent,
+  OHLCDataPoint,
+  ChartSeries,
+  HeatmapDataPoint,
+  TreemapNode,
+} from '../types/index.js';
 
 /**
  * Generate historical S&P 500-like price data from 2000 to 2024
@@ -164,5 +171,84 @@ export function getMarketEvents(): MarketEvent[] {
       description: 'Fed begins aggressive rate hike cycle to combat inflation.',
       type: 'policy',
     },
+  ];
+}
+
+/**
+ * Generate OHLC candlestick data for stock charts
+ */
+export function generateOHLCData(days = 100): OHLCDataPoint[] {
+  const data: OHLCDataPoint[] = [];
+  let price = 150;
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  for (let i = days; i >= 0; i--) {
+    const time = now - i * dayMs;
+    const volatility = 0.02;
+    const change = price * volatility * (Math.random() - 0.5) * 2;
+
+    const open = price;
+    const close = price + change;
+    const high = Math.max(open, close) + Math.abs(change) * Math.random();
+    const low = Math.min(open, close) - Math.abs(change) * Math.random();
+    const volume = Math.floor(1000000 + Math.random() * 5000000);
+
+    data.push({ time, open, high, low, close, volume });
+    price = close;
+  }
+
+  return data;
+}
+
+/**
+ * Generate sample data for basic charts (line, bar, area)
+ */
+export function generateChartData(): { series: ChartSeries[]; categories: string[] } {
+  return {
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+    series: [
+      { name: 'Sales', data: [30, 40, 35, 50, 49, 60, 70, 91, 125] },
+      { name: 'Revenue', data: [20, 30, 45, 32, 43, 52, 63, 80, 95] },
+    ],
+  };
+}
+
+/**
+ * Generate sample heatmap data (weekly activity pattern)
+ */
+export function generateHeatmapData(): {
+  data: HeatmapDataPoint[];
+  xCategories: string[];
+  yCategories: string[];
+} {
+  const xCategories = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const yCategories = ['Morning', 'Afternoon', 'Evening'];
+  const data: HeatmapDataPoint[] = [];
+
+  for (let x = 0; x < xCategories.length; x++) {
+    for (let y = 0; y < yCategories.length; y++) {
+      data.push({
+        x,
+        y,
+        value: Math.floor(Math.random() * 100) + 10,
+      });
+    }
+  }
+
+  return { data, xCategories, yCategories };
+}
+
+/**
+ * Generate sample treemap data (project breakdown)
+ */
+export function generateTreemapData(): TreemapNode[] {
+  return [
+    { id: 'frontend', name: 'Frontend', value: 45 },
+    { id: 'backend', name: 'Backend', value: 35 },
+    { id: 'database', name: 'Database', value: 20 },
+    { id: 'devops', name: 'DevOps', value: 15 },
+    { id: 'testing', name: 'Testing', value: 25 },
+    { id: 'docs', name: 'Documentation', value: 10 },
   ];
 }

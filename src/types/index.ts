@@ -126,6 +126,27 @@ export interface VizTableEvent<T = unknown> {
   selectedRows?: T[];
 }
 
+// Stock Chart types (OHLC candlestick)
+export interface OHLCDataPoint {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}
+
+export interface StockChartConfig {
+  title?: string;
+  symbol?: string;
+  currency?: string;
+  showVolume?: boolean;
+  realtime?: boolean;
+  realtimeInterval?: number;
+  /** Pass any Highcharts options for full customization */
+  highcharts?: Record<string, unknown>;
+}
+
 // Stock Evolution types
 export interface PriceDataPoint {
   time: number;
