@@ -58,17 +58,6 @@ export class VizBaseComponent extends LitElement {
         min-height: 200px;
         color: var(--_text);
       }
-
-      .error {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 200px;
-        padding: 1rem;
-        color: #d32f2f;
-        background: #ffebee;
-        border-radius: var(--_radius);
-      }
     `,
   ];
 

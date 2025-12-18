@@ -197,3 +197,50 @@ export interface StockEvolutionConfig {
   /** Pass any Highcharts options for full customization */
   highcharts?: Record<string, unknown>;
 }
+
+// ============================================================================
+// Micro Component Types (Lightweight, no Highcharts)
+// ============================================================================
+
+// Sparkline types
+export type SparklineType = 'line' | 'area' | 'bar';
+
+export interface SparklineConfig {
+  type?: SparklineType;
+  color?: string;
+  showMin?: boolean;
+  showMax?: boolean;
+  showLast?: boolean;
+  animate?: boolean;
+  height?: number;
+  width?: number;
+  lineWidth?: number;
+}
+
+// KPI types
+export type KPIFormat = 'number' | 'currency' | 'percent' | 'compact';
+export type ComponentSize = 'small' | 'medium' | 'large';
+
+export interface KPIThresholds {
+  warning?: number;
+  critical?: number;
+}
+
+export interface KPIConfig {
+  format?: KPIFormat;
+  decimals?: number;
+  size?: ComponentSize;
+  thresholds?: KPIThresholds;
+  invertTrend?: boolean;
+  prefix?: string;
+  unit?: string;
+}
+
+// Status types
+export type StatusType = 'success' | 'warning' | 'error' | 'info' | 'neutral';
+
+export interface StatusConfig {
+  size?: ComponentSize;
+  pulse?: boolean;
+  showIcon?: boolean;
+}

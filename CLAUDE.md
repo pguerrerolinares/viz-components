@@ -47,19 +47,25 @@ src/
 │   │   └── viz-widget.ts         # Widget wrapper
 │   ├── table/
 │   │   └── viz-table.ts          # Data table with sort/filter
-│   └── advanced/
-│       ├── viz-heatmap.ts        # Heatmap visualization
-│       └── viz-treemap.ts        # Treemap visualization
+│   ├── advanced/
+│   │   ├── viz-heatmap.ts        # Heatmap visualization
+│   │   └── viz-treemap.ts        # Treemap visualization
+│   └── micro/                    # Lightweight components (no Highcharts)
+│       ├── viz-sparkline.ts      # Canvas-based inline chart
+│       ├── viz-kpi.ts            # KPI card with trend
+│       └── viz-status.ts         # Status indicator
 ├── styles/
 │   ├── highcharts-theme.ts       # Shared Highcharts theme CSS variables
 │   ├── chart-header.ts           # Shared chart header styles
-│   └── event-modal.ts            # Market event modal styles
+│   ├── event-modal.ts            # Market event modal styles
+│   └── micro-shared.ts           # Shared styles for micro components
 ├── utils/
 │   ├── sample-data.ts            # Sample data generators for demos
 │   ├── market-event-constants.ts # Event colors and labels
 │   ├── market-event-icons.ts     # SVG icons and marker generators
 │   ├── highcharts-theme.ts       # DOM theme update utilities
-│   └── flag-layout.ts            # Flag collision avoidance algorithm
+│   ├── flag-layout.ts            # Flag collision avoidance algorithm
+│   └── number-format.ts          # Number formatting utilities
 └── types/
     ├── index.ts                  # TypeScript definitions
     └── events.ts                 # Event type definitions
@@ -77,10 +83,13 @@ src/
 
 ```
 LitElement
+├── VizSparkline (standalone, Canvas-based)
 └── VizBaseComponent (ThemeController, emitEvent())
     ├── VizWidget
     ├── VizDashboard
     ├── VizTable
+    ├── VizKPI (uses VizSparkline internally)
+    ├── VizStatus
     └── VizHighchartsComponent (PropertyWatchController, LazyInitController, demo prop)
         ├── VizChart
         ├── VizHeatmap
@@ -160,6 +169,8 @@ Event naming convention:
 
 ## Components
 
+### Highcharts-based Components
+
 | Component | Tag | Demo | Description |
 |-----------|-----|------|-------------|
 | VizChart | `<viz-chart>` | Yes | Line, bar, column, pie, area charts |
@@ -171,6 +182,23 @@ Event naming convention:
 | VizTable | `<viz-table>` | - | Sortable, filterable, paginated table |
 | VizHeatmap | `<viz-heatmap>` | Yes | Heatmap visualization |
 | VizTreemap | `<viz-treemap>` | Yes | Treemap visualization |
+
+### Micro Components (No Highcharts)
+
+Lightweight components that don't require Highcharts. Use Canvas or pure CSS.
+
+| Component | Tag | Description |
+|-----------|-----|-------------|
+| VizSparkline | `<viz-sparkline>` | Canvas-based inline chart (line/area/bar) |
+| VizKPI | `<viz-kpi>` | KPI card with value, trend, and optional sparkline |
+| VizStatus | `<viz-status>` | Status indicator with icon and semantic color |
+
+**Key files:**
+- `src/components/micro/viz-sparkline.ts` - Extends LitElement directly (no VizBaseComponent)
+- `src/components/micro/viz-kpi.ts` - Extends VizBaseComponent, uses VizSparkline internally
+- `src/components/micro/viz-status.ts` - Extends VizBaseComponent
+- `src/styles/micro-shared.ts` - Shared styles, colors, icons for micro components
+- `src/utils/number-format.ts` - Number formatting utilities (compact, currency, percent)
 
 ### Demo Prop Pattern
 

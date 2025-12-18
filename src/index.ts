@@ -37,6 +37,11 @@ export { VizTable } from './components/table/viz-table.js';
 export { VizHeatmap } from './components/advanced/viz-heatmap.js';
 export { VizTreemap } from './components/advanced/viz-treemap.js';
 
+// Export micro components (lightweight, no Highcharts)
+export { VizSparkline } from './components/micro/viz-sparkline.js';
+export { VizKPI } from './components/micro/viz-kpi.js';
+export { VizStatus } from './components/micro/viz-status.js';
+
 // Export types
 export type {
   // Core types
@@ -81,6 +86,15 @@ export type {
   MarketEvent,
   MarketEventType,
   StockEvolutionConfig,
+  // Micro component types
+  SparklineType,
+  SparklineConfig,
+  KPIFormat,
+  ComponentSize,
+  KPIThresholds,
+  KPIConfig,
+  StatusType,
+  StatusConfig,
 } from './types/index.js';
 
 export { VizEventNames } from './types/index.js';
@@ -102,5 +116,15 @@ export { DEFAULT_EVENT_COLORS, EVENT_TYPE_LABELS } from './utils/market-event-co
 export { calculateFlagStemHeights } from './utils/flag-layout.js';
 export type { EventWithPosition, FlagLayoutOptions } from './utils/flag-layout.js';
 
+// Export number formatting utilities
+export {
+  formatNumber,
+  formatChange,
+  formatPercentChange,
+  calculatePercentChange,
+  type NumberFormat,
+  type FormatOptions,
+} from './utils/number-format.js';
+
 // Library version
-export const VERSION = '0.1.0';
+export const VERSION = '2.0.0';

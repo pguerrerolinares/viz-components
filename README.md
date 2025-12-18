@@ -256,6 +256,96 @@ Treemap visualization for hierarchical data.
 - `data` - JSON array of nodes with `id`, `name`, `value`, optional `parent`
 - `config` - JSON object with `layoutAlgorithm`, `allowDrillDown`, and `highcharts` for full customization
 
+## Micro Components (Lightweight)
+
+These components are lightweight and don't require Highcharts. They use Canvas or pure CSS for rendering.
+
+### viz-sparkline
+
+Lightweight inline chart using Canvas 2D.
+
+```html
+<viz-sparkline data="[10,20,15,30,25,40]" type="line"></viz-sparkline>
+<viz-sparkline data="[10,20,15,30,25,40]" type="area" color="#8b5cf6"></viz-sparkline>
+<viz-sparkline data="[10,20,15,30,25,40]" type="bar" show-min show-max></viz-sparkline>
+```
+
+**Attributes:**
+- `data` - Array of numeric values
+- `type` - Chart type: `line`, `area`, `bar` (default: `line`)
+- `color` - Line/fill color (default: `--viz-primary`)
+- `height` - Height in pixels (default: 32)
+- `width` - Width in pixels (0 = auto-fill container)
+- `line-width` - Stroke width for line/area (default: 1.5)
+- `show-min` - Show marker on minimum value
+- `show-max` - Show marker on maximum value
+- `show-last` - Show marker on last value
+- `animated` - Enable entrance animation (default: true)
+
+### viz-kpi
+
+Key Performance Indicator card with value, trend indicator, and optional sparkline.
+
+```html
+<viz-kpi
+  value="1234"
+  label="Revenue"
+  prefix="$"
+  format="compact"
+  previous-value="1100"
+  trend="[100,120,115,130,125,140]"
+></viz-kpi>
+
+<viz-kpi
+  value="42.5"
+  label="Bounce Rate"
+  unit="%"
+  decimals="1"
+  previous-value="48.2"
+  invert-trend
+></viz-kpi>
+```
+
+**Attributes:**
+- `value` - Current numeric value
+- `label` - KPI label/title
+- `unit` - Unit suffix (e.g., "%", "ms")
+- `prefix` - Value prefix (e.g., "$", "€")
+- `previous-value` - Previous value for calculating change percentage
+- `trend` - Array of values for sparkline
+- `format` - Number format: `number`, `currency`, `percent`, `compact`
+- `decimals` - Decimal places to show
+- `size` - Component size: `small`, `medium`, `large`
+- `invert-trend` - Invert trend colors (lower is better)
+- `thresholds` - Object with `warning` and `critical` values for color coding
+
+**Events:**
+- `viz-kpi-click` - Fired when clicking the KPI card
+
+### viz-status
+
+Semantic status indicator with icon and color.
+
+```html
+<viz-status status="success" label="API" value="Operational"></viz-status>
+<viz-status status="warning" label="Database" value="High Load" pulse></viz-status>
+<viz-status status="error" label="Cache" value="Down"></viz-status>
+<viz-status status="info" label="Deploy" value="In Progress"></viz-status>
+<viz-status status="neutral" label="Backup" value="Scheduled"></viz-status>
+```
+
+**Attributes:**
+- `status` - Status type: `success`, `warning`, `error`, `info`, `neutral`
+- `label` - Status label
+- `value` - Optional value text
+- `size` - Component size: `small`, `medium`, `large`
+- `pulse` - Enable pulse animation
+- `show-icon` - Show status icon (default: true)
+- `icon` - Custom SVG icon string
+
+**Events:**
+- `viz-status-click` - Fired when clicking the status indicator
+
 ## Events
 
 All components emit standardized events with a consistent structure:
@@ -376,6 +466,9 @@ viz-table::part(filter-input) {
 | viz-table | `wrapper`, `toolbar`, `filter-input`, `table`, `thead`, `tbody` |
 | viz-heatmap | `chart` |
 | viz-treemap | `chart` |
+| viz-sparkline | `canvas` |
+| viz-kpi | `container`, `label`, `value`, `change`, `sparkline` |
+| viz-status | `container`, `indicator`, `icon`, `label`, `value` |
 
 ## Framework Integration
 
@@ -540,10 +633,18 @@ import {
   // Layout utilities
   calculateFlagStemHeights, // Collision-aware flag positioning
 
+  // Number formatting
+  formatNumber,           // Format numbers with locale support
+  formatChange,           // Format change values (+/-)
+  formatPercentChange,    // Format percentage changes
+
   // Types
   type VizEventDetail,
   type ThemeMode,
   type ThemeState,
+  type SparklineType,
+  type ComponentSize,
+  type StatusType,
 } from '@pguerrerolinares/viz-components';
 ```
 

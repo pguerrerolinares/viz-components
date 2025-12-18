@@ -156,6 +156,61 @@
 
   <h1>viz-components Library Demo</h1>
 
+  <!-- Micro Components Section -->
+  <h2>Micro Components (Lightweight)</h2>
+
+  <div class="demo-section">
+    <h3>Sparklines</h3>
+    <p style="color: var(--viz-text); opacity: 0.7; margin-bottom: 1rem;">
+      Lightweight inline charts using Canvas - no Highcharts dependency.
+    </p>
+    <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+      <div>
+        <span style="font-size: 0.875rem; opacity: 0.7;">Line:</span>
+        <viz-sparkline id="sparkLine" type="line" height="32" style="width: 120px;"></viz-sparkline>
+      </div>
+      <div>
+        <span style="font-size: 0.875rem; opacity: 0.7;">Area:</span>
+        <viz-sparkline id="sparkArea" type="area" height="32" style="width: 120px;"></viz-sparkline>
+      </div>
+      <div>
+        <span style="font-size: 0.875rem; opacity: 0.7;">Bar:</span>
+        <viz-sparkline id="sparkBar" type="bar" height="32" style="width: 120px;"></viz-sparkline>
+      </div>
+      <div>
+        <span style="font-size: 0.875rem; opacity: 0.7;">With markers:</span>
+        <viz-sparkline id="sparkMarkers" type="line" height="32" show-min show-max show-last style="width: 120px;"></viz-sparkline>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-section">
+    <h3>KPI Cards</h3>
+    <p style="color: var(--viz-text); opacity: 0.7; margin-bottom: 1rem;">
+      Key Performance Indicator cards with value, trend, and optional sparkline.
+    </p>
+    <viz-dashboard columns="4" gap="16">
+      <viz-kpi id="kpi1" label="Revenue" prefix="$" format="compact"></viz-kpi>
+      <viz-kpi id="kpi2" label="Conversion" unit="%" decimals="1"></viz-kpi>
+      <viz-kpi id="kpi3" label="Bounce Rate" unit="%" decimals="1" invert-trend></viz-kpi>
+      <viz-kpi id="kpi4" label="Uptime" unit="%" size="large"></viz-kpi>
+    </viz-dashboard>
+  </div>
+
+  <div class="demo-section">
+    <h3>Status Indicators</h3>
+    <p style="color: var(--viz-text); opacity: 0.7; margin-bottom: 1rem;">
+      Semantic status indicators with icons and optional pulse animation.
+    </p>
+    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+      <viz-status status="success" label="API" value="Operational"></viz-status>
+      <viz-status status="warning" label="Database" value="High Load" pulse></viz-status>
+      <viz-status status="error" label="Cache" value="Down"></viz-status>
+      <viz-status status="info" label="Deploy" value="In Progress"></viz-status>
+      <viz-status status="neutral" label="Backup" value="Scheduled"></viz-status>
+    </div>
+  </div>
+
   <!-- Event Log Panel -->
   <div id="eventLog" class="event-log">
     <h4>Event Log <button onclick="document.getElementById('eventLog').querySelector('ul').innerHTML = ''" style="font-size: 0.75rem; margin-left: 1rem;">Clear</button></h4>
@@ -279,7 +334,37 @@
       customElements.whenDefined('viz-table'),
       customElements.whenDefined('viz-heatmap'),
       customElements.whenDefined('viz-treemap'),
+      customElements.whenDefined('viz-sparkline'),
+      customElements.whenDefined('viz-kpi'),
+      customElements.whenDefined('viz-status'),
     ]);
+
+    // Sparkline data
+    const sparkData = [10, 25, 15, 30, 22, 40, 35, 45, 38, 50, 42, 55];
+    document.getElementById('sparkLine').data = sparkData;
+    document.getElementById('sparkArea').data = sparkData;
+    document.getElementById('sparkBar').data = sparkData;
+    document.getElementById('sparkMarkers').data = sparkData;
+
+    // KPI data
+    const kpi1 = document.getElementById('kpi1');
+    kpi1.value = 128450;
+    kpi1.previousValue = 115200;
+    kpi1.trend = [95, 102, 98, 115, 108, 120, 128];
+
+    const kpi2 = document.getElementById('kpi2');
+    kpi2.value = 3.42;
+    kpi2.previousValue = 2.98;
+    kpi2.trend = [2.1, 2.5, 2.3, 2.8, 3.1, 3.0, 3.4];
+
+    const kpi3 = document.getElementById('kpi3');
+    kpi3.value = 42.1;
+    kpi3.previousValue = 48.5;
+    kpi3.trend = [55, 52, 50, 48, 46, 44, 42];
+
+    const kpi4 = document.getElementById('kpi4');
+    kpi4.value = 99.98;
+    kpi4.previousValue = 99.95;
 
     // Pie Chart Data (custom format, not using demo)
     document.getElementById('pieChart').setAttribute('data', JSON.stringify([
