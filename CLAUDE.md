@@ -30,7 +30,9 @@ src/
 │   ├── events.ts                 # Standardized event system
 │   ├── theme.ts                  # ThemeController (light/dark detection)
 │   ├── lifecycle.ts              # PropertyWatchController
-│   └── lazy.ts                   # LazyInitController (IntersectionObserver)
+│   ├── lazy.ts                   # LazyInitController (IntersectionObserver)
+│   ├── store.ts                  # VizStore singleton (shared state)
+│   └── store-controller.ts       # StoreController (Lit reactive controller)
 ├── base/
 │   ├── viz-base-component.ts     # Abstract base class (extends LitElement)
 │   ├── viz-highcharts-component.ts # Base for all Highcharts charts
@@ -68,7 +70,8 @@ src/
 │   └── number-format.ts          # Number formatting utilities
 └── types/
     ├── index.ts                  # TypeScript definitions
-    └── events.ts                 # Event type definitions
+    ├── events.ts                 # Event type definitions
+    └── store.ts                  # Store type definitions
 ```
 
 ## Architecture
@@ -108,10 +111,13 @@ The library uses Lit's Reactive Controller pattern for reusable functionality:
 | `ThemeController` | `src/core/theme.ts` | Detects light/dark from document classes |
 | `PropertyWatchController` | `src/core/lifecycle.ts` | Debounced property change handling |
 | `LazyInitController` | `src/core/lazy.ts` | IntersectionObserver-based lazy init |
+| `StoreController` | `src/core/store-controller.ts` | Connects Lit components to VizStore |
 
 **ThemeController** detects theme from `document.documentElement` or `document.body` classes (e.g., `.dark`). It does NOT fall back to system preference - this is intentional because page-level toggles control the class, not the system preference.
 
 **LazyInitController** defers heavy chart initialization until the component enters the viewport. Uses 100px `rootMargin` to start loading slightly before visible.
+
+**StoreController** connects Lit components to VizStore for shared state management. Automatically subscribes on `hostConnected()` and cleans up on `hostDisconnected()`. Uses `queueMicrotask()` to safely trigger Lit updates from subscription callbacks.
 
 ### Key Patterns
 
@@ -293,6 +299,8 @@ Located in `src/utils/sample-data.ts`, exported from main index:
 - Use `emitEvent()` for all custom events (standardized structure)
 - Use `queueMicrotask()` when calling `requestUpdate()` from controllers to avoid Lit warnings
 - Chart components support `lazy` property (default: `true`) for deferred initialization
+- Use `StoreController` for components that need shared state across the application
+- VizStore namespaces isolate state between different dashboards/contexts
 
 ## Highcharts Stock Charts - Dark Mode & Adaptive Theme
 
@@ -441,3 +449,89 @@ const buttons = this.buildLongTermButtons();  // 1Y, 5Y, 10Y, 20Y, All
 // Get themed button styles using --viz-primary
 const theme = this.buildRangeSelectorButtonTheme();
 ```
+
+## VizStore - Shared State Management
+
+### Overview
+
+VizStore is a lightweight shared state container that enables components to coordinate without external frameworks. It follows a singleton-per-namespace pattern with pub/sub subscriptions.
+
+### Key Files
+
+- `src/core/store.ts` - VizStore singleton implementation
+- `src/core/store-controller.ts` - StoreController reactive controller
+- `src/types/store.ts` - Type definitions
+
+### Architecture
+
+```
+VizStore.getInstance('dashboard')
+  ├── get(key) / set(key, value)
+  ├── subscribe(key, callback)
+  ├── subscribeAll(callback)
+  └── Emits 'viz-state-change' on document
+```
+
+### Usage Patterns
+
+**Vanilla JS / External Frameworks:**
+
+```typescript
+import { VizStore } from '@pguerrerolinares/viz-components';
+
+const store = VizStore.getInstance('dashboard');
+store.set('selectedSymbol', 'AAPL');
+
+// Subscribe to changes
+const unsubscribe = store.subscribe('selectedSymbol', (key, value, prev) => {
+  console.log(`Changed: ${prev} → ${value}`);
+});
+
+// Listen via DOM events (cross-framework)
+document.addEventListener('viz-state-change', (e) => {
+  const { namespace, key, value } = e.detail.data;
+});
+```
+
+**Lit Components with StoreController:**
+
+```typescript
+@customElement('my-chart')
+class MyChart extends VizHighchartsComponent {
+  private store = new StoreController(this, {
+    namespace: 'dashboard',
+    keys: ['selectedSymbol', 'dateRange'],
+    onStateChange: (key, value) => {
+      if (key === 'selectedSymbol') this.loadSymbol(value);
+    },
+  });
+
+  get symbol() {
+    return this.store.get<string>('selectedSymbol');
+  }
+}
+```
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| Namespaces | Isolated stores per namespace |
+| Shallow equality | Skips update if value unchanged |
+| DOM events | `viz-state-change` on document |
+| Persistence | Optional via `persist: true` |
+| Debug mode | Optional console logging |
+| Wildcard subscription | `subscribeAll()` |
+
+### StoreController Lifecycle
+
+1. **hostConnected()**: Sets up subscriptions based on `keys` or `watchAll` options
+2. **Subscription callback**: Calls `onStateChange` then `queueMicrotask(() => host.requestUpdate())`
+3. **hostDisconnected()**: Cleans up all subscriptions
+
+### Important Notes
+
+- Always use `queueMicrotask()` when triggering Lit updates from store callbacks to avoid "scheduling update during update" warnings
+- Namespaces allow multiple isolated dashboards on the same page
+- The store emits DOM events on `document` for cross-framework communication
+- Use `persist: true` for state that should survive page reloads

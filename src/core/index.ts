@@ -29,3 +29,7 @@ export type { PropertyWatchOptions, LifecycleHooks } from './lifecycle.js';
 export { LazyInitController } from './lazy.js';
 
 export type { LazyInitOptions } from './lazy.js';
+
+// Store
+export { VizStore } from './store.js';
+export { StoreController } from './store-controller.js';

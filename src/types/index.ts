@@ -20,10 +20,19 @@ export type {
   ExpandData,
   RefreshData,
   ThemeChangeData,
+  StateChangeData,
   VizEventName,
 } from './events.js';
 
 export { VizEventNames } from './events.js';
+
+// Re-export store types
+export type {
+  StoreNamespace,
+  StateSubscriber,
+  VizStoreOptions,
+  StoreControllerOptions,
+} from './store.js';
 
 // Chart types
 export type ChartType = 'line' | 'bar' | 'column' | 'pie' | 'area';

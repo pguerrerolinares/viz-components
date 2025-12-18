@@ -95,6 +95,13 @@ export interface ThemeChangeData {
 }
 
 // ============================================================================
+// Store Events
+// ============================================================================
+
+// Re-export from store types for convenience
+export type { StateChangeData } from './store.js';
+
+// ============================================================================
 // Event Name Constants
 // ============================================================================
 
@@ -117,6 +124,9 @@ export const VizEventNames = {
 
   // Theme events
   THEME_CHANGE: 'viz-theme-change',
+
+  // Store events
+  STATE_CHANGE: 'viz-state-change',
 } as const;
 
 export type VizEventName = (typeof VizEventNames)[keyof typeof VizEventNames];

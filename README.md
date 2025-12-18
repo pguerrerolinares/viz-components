@@ -346,6 +346,170 @@ Semantic status indicator with icon and color.
 **Events:**
 - `viz-status-click` - Fired when clicking the status indicator
 
+## State Management (VizStore)
+
+Lightweight shared state container for coordinating multiple components without external frameworks.
+
+### VizStore
+
+Singleton state container with pub/sub pattern:
+
+```typescript
+import { VizStore } from '@pguerrerolinares/viz-components';
+
+// Get store instance (namespace isolates state)
+const store = VizStore.getInstance('dashboard');
+
+// Read/write state
+store.set('selectedSymbol', 'AAPL');
+const symbol = store.get<string>('selectedSymbol');
+
+// Get with default fallback
+const range = store.getOrDefault('dateRange', '1Y');
+
+// Set multiple values
+store.setMany({ symbol: 'AAPL', range: '1Y' });
+
+// Subscribe to changes
+const unsubscribe = store.subscribe('selectedSymbol', (key, value, prev) => {
+  console.log(`Changed: ${prev} → ${value}`);
+});
+
+// Subscribe to all changes
+store.subscribeAll((key, value, prev) => {
+  console.log(`Any change: ${key} = ${value}`);
+});
+
+// With persistence (localStorage)
+const persistedStore = VizStore.getInstance('settings', { persist: true });
+
+// Debug mode
+const debugStore = VizStore.getInstance('dev', { debug: true });
+```
+
+**Store Options:**
+- `persist` - Save state to localStorage
+- `debug` - Log state changes to console
+- `storagePrefix` - Custom localStorage key prefix (default: `viz-store`)
+
+### StoreController
+
+Reactive controller for connecting Lit components to VizStore:
+
+```typescript
+import { LitElement } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { StoreController } from '@pguerrerolinares/viz-components';
+
+@customElement('my-chart')
+class MyChart extends LitElement {
+  private store = new StoreController(this, {
+    namespace: 'dashboard',
+    keys: ['selectedSymbol', 'dateRange'],
+    onStateChange: (key, value, prev) => {
+      if (key === 'selectedSymbol') {
+        this.loadDataForSymbol(value as string);
+      }
+    },
+  });
+
+  get selectedSymbol() {
+    return this.store.get<string>('selectedSymbol');
+  }
+
+  updateSymbol(symbol: string) {
+    this.store.set('selectedSymbol', symbol);
+  }
+}
+```
+
+**Controller Options:**
+- `namespace` - Store namespace to connect to (default: `'default'`)
+- `keys` - Array of keys to watch for changes
+- `onStateChange` - Callback when any watched key changes
+- `watchAll` - Subscribe to all state changes (ignores `keys`)
+
+**Controller Methods:**
+- `get<T>(key)` - Get value from store
+- `getOrDefault<T>(key, default)` - Get value with fallback
+- `set(key, value)` - Set value in store
+- `setMany(updates)` - Set multiple values
+- `has(key)` - Check if key exists
+- `delete(key)` - Remove key from store
+- `watchKey(key)` - Dynamically add a key to watch
+- `subscribeKey(key, callback)` - Subscribe with custom callback
+
+### Cross-Framework Usage
+
+**Vanilla HTML / JSP:**
+
+```html
+<script type="module">
+  import { VizStore } from './dist/index.js';
+
+  const store = VizStore.getInstance('dashboard');
+
+  // Selector updates store
+  document.getElementById('symbolSelect').addEventListener('change', (e) => {
+    store.set('selectedSymbol', e.target.value);
+  });
+
+  // Listen for state changes via DOM events
+  document.addEventListener('viz-state-change', (e) => {
+    const { namespace, key, value } = e.detail.data;
+    console.log(`${namespace}/${key} =`, value);
+  });
+</script>
+```
+
+**React Hook:**
+
+```tsx
+import { useState, useEffect } from 'react';
+import { VizStore } from '@pguerrerolinares/viz-components';
+
+function useVizStore<T>(namespace: string, key: string, defaultValue: T) {
+  const store = VizStore.getInstance(namespace);
+  const [value, setValue] = useState(store.getOrDefault(key, defaultValue));
+
+  useEffect(() => {
+    return store.subscribe(key, (_, v) => setValue(v as T));
+  }, [namespace, key]);
+
+  return [value, (v: T) => store.set(key, v)] as const;
+}
+
+// Usage
+function MyComponent() {
+  const [symbol, setSymbol] = useVizStore('dashboard', 'selectedSymbol', 'AAPL');
+  return <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>...</select>;
+}
+```
+
+**Angular Service:**
+
+```typescript
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { VizStore } from '@pguerrerolinares/viz-components';
+
+@Injectable({ providedIn: 'root' })
+export class VizStoreService {
+  private store = VizStore.getInstance('dashboard');
+
+  select<T>(key: string, defaultValue: T): Observable<T> {
+    return new Observable(subscriber => {
+      subscriber.next(this.store.getOrDefault(key, defaultValue));
+      return this.store.subscribe(key, (_, v) => subscriber.next(v as T));
+    });
+  }
+
+  set(key: string, value: unknown): void {
+    this.store.set(key, value);
+  }
+}
+```
+
 ## Events
 
 All components emit standardized events with a consistent structure:
@@ -369,6 +533,7 @@ interface VizEventDetail<T> {
 | `viz-filter` | viz-table | `{ column, value }` |
 | `viz-select` | viz-table | `{ rows }` |
 | `viz-page` | viz-table | `{ page, pageSize }` |
+| `viz-state-change` | VizStore | `{ namespace, key, value, previousValue }` |
 
 ### Listening to Events
 
@@ -584,6 +749,7 @@ class MyCustomChart extends VizHighchartsComponent {
 - `ThemeController` - Automatic light/dark theme detection from document classes
 - `LazyInitController` - IntersectionObserver-based lazy initialization
 - `PropertyWatchController` - Debounced property change watching
+- `StoreController` - Connect components to VizStore for shared state
 
 **Event Utilities:**
 - `emitVizEvent(host, eventName, data)` - Emit standardized events
@@ -624,6 +790,10 @@ import {
   ThemeController,        // Theme detection controller
   LazyInitController,     // Lazy loading controller
   PropertyWatchController, // Property watching controller
+  StoreController,        // Shared state controller
+
+  // State Management
+  VizStore,               // Singleton state container
 
   // Theme utilities
   getCSSProperty,         // Read CSS custom property with fallback
@@ -645,6 +815,11 @@ import {
   type SparklineType,
   type ComponentSize,
   type StatusType,
+  type StateChangeData,
+  type StoreNamespace,
+  type StateSubscriber,
+  type VizStoreOptions,
+  type StoreControllerOptions,
 } from '@pguerrerolinares/viz-components';
 ```
 

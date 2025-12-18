@@ -211,6 +211,69 @@
     </div>
   </div>
 
+  <!-- State Management Section -->
+  <h2>State Management (VizStore)</h2>
+
+  <div class="demo-section">
+    <h3>Cross-Component Coordination</h3>
+    <p style="color: var(--viz-text); opacity: 0.7; margin-bottom: 1rem;">
+      VizStore enables components to share state without external frameworks.
+      Select a symbol below and watch all connected components update.
+    </p>
+
+    <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+      <!-- Symbol Selector -->
+      <div>
+        <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
+          Select Symbol:
+        </label>
+        <select id="symbolSelect" style="
+          padding: 0.5rem 1rem;
+          font-size: 1rem;
+          border: 2px solid var(--viz-primary);
+          border-radius: 8px;
+          background: var(--viz-bg);
+          color: var(--viz-text);
+          cursor: pointer;
+          min-width: 150px;
+        ">
+          <option value="AAPL">Apple (AAPL)</option>
+          <option value="GOOGL">Google (GOOGL)</option>
+          <option value="MSFT">Microsoft (MSFT)</option>
+          <option value="AMZN">Amazon (AMZN)</option>
+        </select>
+      </div>
+
+      <!-- Connected KPIs -->
+      <div style="flex: 1; min-width: 300px;">
+        <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">
+          Connected KPIs (react to store):
+        </label>
+        <viz-dashboard columns="2" gap="12">
+          <viz-kpi id="storeKpi1" label="Price" prefix="$" decimals="2"></viz-kpi>
+          <viz-kpi id="storeKpi2" label="Change" unit="%" decimals="2"></viz-kpi>
+        </viz-dashboard>
+      </div>
+    </div>
+
+    <!-- Store Event Monitor -->
+    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border: 1px solid var(--viz-accent-purple);">
+      <label style="font-weight: 600; display: block; margin-bottom: 0.5rem; color: var(--viz-accent-purple);">
+        Store Events (viz-state-change):
+      </label>
+      <div id="storeEventLog" style="
+        font-family: monospace;
+        font-size: 0.75rem;
+        max-height: 100px;
+        overflow-y: auto;
+        color: var(--viz-text);
+        opacity: 0.8;
+      ">
+        <em>Select a symbol to see state changes...</em>
+      </div>
+    </div>
+  </div>
+
   <!-- Event Log Panel -->
   <div id="eventLog" class="event-log">
     <h4>Event Log <button onclick="document.getElementById('eventLog').querySelector('ul').innerHTML = ''" style="font-size: 0.75rem; margin-left: 1rem;">Clear</button></h4>
@@ -292,8 +355,78 @@
   </div>
 
   <script type="module">
-    import { VERSION, VizEventNames } from '../dist/index.js';
+    import { VERSION, VizEventNames, VizStore } from '../dist/index.js';
     import '../dist/index.js';
+
+    // =========================================================================
+    // VizStore Demo
+    // =========================================================================
+
+    // Get store instance for the demo namespace
+    const store = VizStore.getInstance('demo');
+
+    // Simulated stock data for each symbol
+    const stockData = {
+      AAPL: { price: 178.42, change: 2.35, trend: [165, 170, 168, 175, 172, 178] },
+      GOOGL: { price: 142.65, change: -1.18, trend: [148, 145, 143, 146, 144, 142] },
+      MSFT: { price: 378.91, change: 4.52, trend: [360, 365, 370, 368, 375, 379] },
+      AMZN: { price: 185.23, change: 0.87, trend: [180, 182, 181, 184, 183, 185] },
+    };
+
+    // Update KPIs when symbol changes
+    function updateKPIsForSymbol(symbol) {
+      const data = stockData[symbol];
+      if (!data) return;
+
+      const kpi1 = document.getElementById('storeKpi1');
+      const kpi2 = document.getElementById('storeKpi2');
+
+      kpi1.value = data.price;
+      kpi1.previousValue = data.trend[data.trend.length - 2];
+      kpi1.trend = data.trend;
+      kpi1.label = `${symbol} Price`;
+
+      kpi2.value = data.change;
+      kpi2.previousValue = 0;
+      kpi2.label = `${symbol} Change`;
+    }
+
+    // Subscribe to symbol changes in the store
+    store.subscribe('selectedSymbol', (key, value, prev) => {
+      console.log(`[Store] ${key}: ${prev} → ${value}`);
+      updateKPIsForSymbol(value);
+    });
+
+    // Listen for state-change DOM events
+    document.addEventListener('viz-state-change', (e) => {
+      const { namespace, key, value, previousValue } = e.detail.data;
+      const logDiv = document.getElementById('storeEventLog');
+
+      const entry = document.createElement('div');
+      entry.textContent = `[${namespace}] ${key}: ${JSON.stringify(previousValue)} → ${JSON.stringify(value)}`;
+      entry.style.padding = '0.25rem 0';
+      entry.style.borderBottom = '1px solid rgba(128,128,128,0.2)';
+
+      // Clear placeholder text on first event
+      if (logDiv.querySelector('em')) {
+        logDiv.innerHTML = '';
+      }
+
+      logDiv.insertBefore(entry, logDiv.firstChild);
+
+      // Keep only last 10 entries
+      while (logDiv.children.length > 10) {
+        logDiv.removeChild(logDiv.lastChild);
+      }
+    });
+
+    // Connect symbol selector to store
+    document.getElementById('symbolSelect').addEventListener('change', (e) => {
+      store.set('selectedSymbol', e.target.value);
+    });
+
+    // Initialize with default symbol
+    store.set('selectedSymbol', 'AAPL');
 
     console.log('viz-components version:', VERSION);
     console.log('Available events:', VizEventNames);

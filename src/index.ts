@@ -18,6 +18,9 @@ export {
   PropertyWatchController,
   // Lazy
   LazyInitController,
+  // Store
+  VizStore,
+  StoreController,
 } from './core/index.js';
 
 // Export base components
@@ -62,7 +65,13 @@ export type {
   ExpandData,
   RefreshData,
   ThemeChangeData,
+  StateChangeData,
   VizEventName,
+  // Store types
+  StoreNamespace,
+  StateSubscriber,
+  VizStoreOptions,
+  StoreControllerOptions,
   // Chart types
   ChartType,
   ChartSeries,
