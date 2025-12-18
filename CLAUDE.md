@@ -25,10 +25,17 @@ bun run serve        # Run local dev server for examples
 ```
 src/
 ├── index.ts                      # Main exports
+├── core/                         # Framework-agnostic core (no Highcharts)
+│   ├── index.ts                  # Core exports
+│   ├── events.ts                 # Standardized event system
+│   ├── theme.ts                  # ThemeController (light/dark detection)
+│   ├── lifecycle.ts              # PropertyWatchController
+│   └── lazy.ts                   # LazyInitController (IntersectionObserver)
 ├── base/
 │   ├── viz-base-component.ts     # Abstract base class (extends LitElement)
 │   ├── viz-highcharts-component.ts # Base for all Highcharts charts
-│   └── viz-stock-chart-base.ts   # Base for stock charts (zoom, range selectors)
+│   ├── viz-stock-chart-base.ts   # Base for stock charts (zoom, range selectors)
+│   └── viz-highcharts-theme.ts   # Highcharts-specific theme utilities
 ├── components/
 │   ├── chart/
 │   │   ├── viz-chart.ts          # Line/bar/pie/area charts
@@ -51,9 +58,11 @@ src/
 │   ├── sample-data.ts            # Sample data generators for demos
 │   ├── market-event-constants.ts # Event colors and labels
 │   ├── market-event-icons.ts     # SVG icons and marker generators
-│   └── highcharts-theme.ts       # DOM theme update utilities
+│   ├── highcharts-theme.ts       # DOM theme update utilities
+│   └── flag-layout.ts            # Flag collision avoidance algorithm
 └── types/
-    └── index.ts                  # TypeScript definitions
+    ├── index.ts                  # TypeScript definitions
+    └── events.ts                 # Event type definitions
 ```
 
 ## Architecture
@@ -68,11 +77,11 @@ src/
 
 ```
 LitElement
-└── VizBaseComponent (theme, loading, error handling)
+└── VizBaseComponent (ThemeController, emitEvent())
     ├── VizWidget
     ├── VizDashboard
     ├── VizTable
-    └── VizHighchartsComponent (chart lifecycle, demo prop)
+    └── VizHighchartsComponent (PropertyWatchController, LazyInitController, demo prop)
         ├── VizChart
         ├── VizHeatmap
         ├── VizTreemap
@@ -80,6 +89,20 @@ LitElement
             ├── VizStockChart
             └── VizStockEvolution
 ```
+
+### Reactive Controllers
+
+The library uses Lit's Reactive Controller pattern for reusable functionality:
+
+| Controller | Location | Purpose |
+|-----------|----------|---------|
+| `ThemeController` | `src/core/theme.ts` | Detects light/dark from document classes |
+| `PropertyWatchController` | `src/core/lifecycle.ts` | Debounced property change handling |
+| `LazyInitController` | `src/core/lazy.ts` | IntersectionObserver-based lazy init |
+
+**ThemeController** detects theme from `document.documentElement` or `document.body` classes (e.g., `.dark`). It does NOT fall back to system preference - this is intentional because page-level toggles control the class, not the system preference.
+
+**LazyInitController** defers heavy chart initialization until the component enters the viewport. Uses 100px `rootMargin` to start loading slightly before visible.
 
 ### Key Patterns
 
@@ -115,6 +138,25 @@ class VizMyComponent extends VizBaseComponent {
 - `--viz-primary`, `--viz-bg`, `--viz-text` - Core colors
 - `--viz-accent-purple`, `--viz-accent-cyan`, `--viz-accent-pink` - Accent colors
 - `--viz-radius` - Border radius
+
+**Event System**: All components emit standardized events via `emitEvent()`:
+
+```typescript
+// In component code
+this.emitEvent(VizEventNames.POINT_CLICK, { point, series });
+
+// Event structure
+interface VizEventDetail<T> {
+  source: string;      // Component tag name
+  timestamp: number;   // When event occurred
+  data: T;             // Event-specific payload
+}
+```
+
+Event naming convention:
+- `viz-{action}` → `viz-click`
+- `viz-{noun}-{action}` → `viz-point-click`
+- `viz-{state}-change` → `viz-theme-change`
 
 ## Components
 
@@ -220,6 +262,9 @@ Located in `src/utils/sample-data.ts`, exported from main index:
 - Shadow DOM for style encapsulation
 - Use `override` keyword for inherited methods
 - Implement abstract methods: `getWatchedProperties()`, `loadDemoData()`, `updateChart()`
+- Use `emitEvent()` for all custom events (standardized structure)
+- Use `queueMicrotask()` when calling `requestUpdate()` from controllers to avoid Lit warnings
+- Chart components support `lazy` property (default: `true`) for deferred initialization
 
 ## Highcharts Stock Charts - Dark Mode & Adaptive Theme
 
@@ -262,15 +307,16 @@ Define Highcharts CSS custom properties on the **container element** (not `:root
 #### 2. Apply Theme Class to Container (Not Document Root)
 
 ```typescript
-protected override updateTheme(): void {
+protected override updateHighchartsTheme(): void {
   const container = this.containerRef.value;
   if (!container) return;
 
-  const isDark = this.isDarkMode();
-  container.classList.toggle('highcharts-dark', isDark);
-  container.classList.toggle('highcharts-light', !isDark);
+  // Apply theme class for CSS custom properties
+  this.applyHighchartsThemeClass(container);
 
-  // Update chart...
+  if (this.chart) {
+    // Update chart colors...
+  }
 }
 ```
 
@@ -313,7 +359,7 @@ if (this.chart) {
 
 #### 5. Update Button Colors on Theme Change
 
-In `updateTheme()`, only update the button theme colors (not the entire rangeSelector):
+In `updateHighchartsTheme()`, only update the button theme colors (not the entire rangeSelector):
 
 ```typescript
 this.chart.update({
@@ -336,11 +382,13 @@ this.chart.update({
 | CSS custom properties | Rely on `:root` inheritance | Define on container to override |
 | rangeSelector config | Include in every update | Only on initial creation |
 | Zoom state | Let Highcharts reset | Save/restore extremes manually |
-| Button colors | Part of rangeSelector | Update separately in updateTheme() |
+| Button colors | Part of rangeSelector | Update separately in updateHighchartsTheme() |
 
 ### Files Implementing This Pattern
 
-- `src/base/viz-stock-chart-base.ts` - Base class with `updateTheme()`, `preserveExtremesAndUpdate()`
+- `src/base/viz-stock-chart-base.ts` - Base class with `updateHighchartsTheme()`, `preserveExtremesAndUpdate()`
+- `src/base/viz-highcharts-theme.ts` - Highcharts theme utilities (`applyHighchartsThemeClass()`)
+- `src/utils/highcharts-theme.ts` - DOM update utilities (`updateStockChartThemeDOM()`)
 - `src/components/chart/viz-stock-chart.ts` - Extends VizStockChartBase
 - `src/components/chart/viz-stock-evolution.ts` - Extends VizStockChartBase
 

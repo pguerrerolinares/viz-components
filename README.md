@@ -6,9 +6,12 @@ Framework-agnostic Web Components library for data visualization. Built with Lit
 
 - Native Web Components - works with any framework (React, Angular, Vue, vanilla JS)
 - Built with Lit for optimal developer experience
-- Theming via CSS custom properties
+- Theming via CSS custom properties with automatic light/dark detection
 - TypeScript support with full type definitions
 - Shadow DOM encapsulation
+- Lazy loading - charts render only when visible (IntersectionObserver)
+- Standardized event system across all components
+- Reactive Controllers for theme, property watching, and lazy initialization
 
 ## Installation
 
@@ -253,6 +256,62 @@ Treemap visualization for hierarchical data.
 - `data` - JSON array of nodes with `id`, `name`, `value`, optional `parent`
 - `config` - JSON object with `layoutAlgorithm`, `allowDrillDown`, and `highcharts` for full customization
 
+## Events
+
+All components emit standardized events with a consistent structure:
+
+```typescript
+interface VizEventDetail<T> {
+  source: string;      // Component tag name (e.g., 'viz-chart')
+  timestamp: number;   // When the event occurred
+  data: T;             // Event-specific payload
+}
+```
+
+### Available Events
+
+| Event | Components | Data |
+|-------|-----------|------|
+| `viz-point-click` | viz-chart, viz-heatmap, viz-treemap | `{ point, series?, category? }` |
+| `viz-series-click` | viz-chart | `{ series }` |
+| `viz-theme-change` | All | `{ theme: 'light' \| 'dark', mode }` |
+| `viz-sort` | viz-table | `{ column, direction }` |
+| `viz-filter` | viz-table | `{ column, value }` |
+| `viz-select` | viz-table | `{ rows }` |
+| `viz-page` | viz-table | `{ page, pageSize }` |
+
+### Listening to Events
+
+```javascript
+document.addEventListener('viz-point-click', (event) => {
+  const { source, timestamp, data } = event.detail;
+  console.log(`Click on ${source}:`, data.point);
+});
+
+// Or on specific component
+const chart = document.querySelector('viz-chart');
+chart.addEventListener('viz-point-click', (e) => {
+  console.log('Point clicked:', e.detail.data);
+});
+```
+
+## Lazy Loading
+
+Chart components support lazy loading via IntersectionObserver. Charts only render when they become visible in the viewport, improving initial page load performance.
+
+```html
+<!-- Lazy loading enabled by default -->
+<viz-chart demo type="line"></viz-chart>
+
+<!-- Disable lazy loading for immediate render -->
+<viz-chart demo type="line" lazy="false"></viz-chart>
+```
+
+**Attributes:**
+- `lazy` - Enable/disable lazy loading (default: `true`)
+
+The lazy loading uses a 100px root margin, so charts start rendering slightly before they enter the viewport.
+
 ## Styling
 
 ### CSS Custom Properties
@@ -393,10 +452,16 @@ Components auto-register when the script loads via `@customElement()` decorators
 
 ## Extending Components
 
-The library exports base classes for creating custom chart components:
+The library exports base classes and reactive controllers for creating custom components:
 
 ```typescript
-import { VizHighchartsComponent } from '@pguerrerolinares/viz-components';
+import {
+  VizHighchartsComponent,
+  ThemeController,
+  LazyInitController,
+  emitVizEvent,
+  VizEventNames
+} from '@pguerrerolinares/viz-components';
 
 @customElement('my-custom-chart')
 class MyCustomChart extends VizHighchartsComponent {
@@ -418,9 +483,18 @@ class MyCustomChart extends VizHighchartsComponent {
 ```
 
 **Available base classes:**
-- `VizBaseComponent` - Base for all components (theme, loading, error handling)
-- `VizHighchartsComponent` - Base for Highcharts charts (lifecycle, demo prop, chart management)
+- `VizBaseComponent` - Base for all components (theme detection, event emission)
+- `VizHighchartsComponent` - Base for Highcharts charts (lifecycle, demo prop, lazy loading)
 - `VizStockChartBase` - Base for stock charts (zoom preservation, range selector helpers)
+
+**Reactive Controllers:**
+- `ThemeController` - Automatic light/dark theme detection from document classes
+- `LazyInitController` - IntersectionObserver-based lazy initialization
+- `PropertyWatchController` - Debounced property change watching
+
+**Event Utilities:**
+- `emitVizEvent(host, eventName, data)` - Emit standardized events
+- `VizEventNames` - Constants for all event names
 
 ## Sample Data Generators
 
@@ -441,6 +515,36 @@ const chart = document.querySelector('viz-chart');
 const { series, categories } = generateChartData();
 chart.data = series;
 chart.categories = categories;
+```
+
+## Core Exports
+
+The library also exports core utilities for building custom components:
+
+```typescript
+import {
+  // Event system
+  VizEventNames,          // Event name constants
+  emitVizEvent,           // Emit standardized events
+
+  // Reactive Controllers
+  ThemeController,        // Theme detection controller
+  LazyInitController,     // Lazy loading controller
+  PropertyWatchController, // Property watching controller
+
+  // Theme utilities
+  getCSSProperty,         // Read CSS custom property with fallback
+  readThemeColors,        // Read core theme colors
+  readThemePalette,       // Read extended palette
+
+  // Layout utilities
+  calculateFlagStemHeights, // Collision-aware flag positioning
+
+  // Types
+  type VizEventDetail,
+  type ThemeMode,
+  type ThemeState,
+} from '@pguerrerolinares/viz-components';
 ```
 
 ## Browser Support

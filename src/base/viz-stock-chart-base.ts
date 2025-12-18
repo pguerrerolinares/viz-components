@@ -1,6 +1,7 @@
 import { state } from 'lit/decorators.js';
 import type Highcharts from 'highcharts/highstock';
 import { VizHighchartsComponent } from './viz-highcharts-component.js';
+import { updateStockChartThemeDOM } from '../utils/highcharts-theme.js';
 
 /**
  * Change info for price display
@@ -25,26 +26,31 @@ export abstract class VizStockChartBase extends VizHighchartsComponent {
   protected lastPrice = 0;
 
   /**
-   * Apply Highcharts theme class to container and update chart
-   * Preserves zoom state when updating
+   * Override Highcharts theme update for stock charts
+   * Preserves zoom state and updates range selector buttons
    */
-  protected override updateTheme(): void {
+  protected override updateHighchartsTheme(): void {
     const container = this.containerRef.value;
     if (!container) return;
 
     // Apply theme class for CSS custom properties
+    // This MUST be done before chart.update() so Highcharts reads correct values
     this.applyHighchartsThemeClass(container);
 
     if (this.chart) {
       const primaryColor = this.getPrimaryColor();
+      const theme = this.getThemeColors();
 
       // Save zoom state before update
       const xAxis = this.chart.xAxis[0];
       const extremes = xAxis?.getExtremes();
 
-      // Update range selector button theme
+      // Update chart colors and range selector button theme
       this.chart.update(
         {
+          chart: {
+            backgroundColor: theme.background,
+          },
           rangeSelector: {
             buttonTheme: {
               states: {
@@ -52,7 +58,24 @@ export abstract class VizStockChartBase extends VizHighchartsComponent {
                 select: { fill: primaryColor, style: { color: '#ffffff', fontWeight: 'bold' } },
               },
             },
+            inputStyle: {
+              color: theme.text,
+            },
+            labelStyle: {
+              color: theme.text,
+            },
           },
+          navigator: {
+            maskFill: `${primaryColor}20`,
+          },
+          xAxis: {
+            labels: { style: { color: theme.text } },
+          },
+          yAxis: [{
+            labels: { style: { color: theme.text } },
+          }, {
+            labels: { style: { color: theme.text } },
+          }],
         },
         false,
         false,
@@ -63,8 +86,11 @@ export abstract class VizStockChartBase extends VizHighchartsComponent {
       if (xAxis && extremes?.userMin !== undefined) {
         xAxis.setExtremes(extremes.userMin, extremes.userMax, true, false);
       } else {
-        this.chart.redraw();
+        this.chart.redraw(true);
       }
+
+      // Update SVG elements that Highcharts doesn't update via API
+      updateStockChartThemeDOM(container, theme, this.isDarkMode());
     }
   }
 

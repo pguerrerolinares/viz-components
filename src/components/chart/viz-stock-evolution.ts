@@ -11,6 +11,7 @@ import { chartHeaderStyles } from '../../styles/chart-header.js';
 import { generateHistoricalPrices, getMarketEvents } from '../../utils/sample-data.js';
 import { DEFAULT_EVENT_COLORS } from '../../utils/market-event-constants.js';
 import { createMarkerSvg, getMarkerHeight, STEM_HEIGHTS } from '../../utils/market-event-icons.js';
+import { calculateFlagStemHeights } from '../../utils/flag-layout.js';
 import './viz-event-modal.js';
 
 import type {
@@ -24,8 +25,6 @@ if (typeof HighchartsAccessibility === 'function') {
   (HighchartsAccessibility as unknown as (hc: typeof Highcharts) => void)(Highcharts);
 }
 
-// Time threshold for "close" events (90 days)
-const CLOSE_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * Stock Evolution Chart Component
@@ -117,32 +116,29 @@ export class VizStockEvolution extends VizStockChartBase {
       : prevPrice.price;
   }
 
-  /** Calculate stem heights for events based on proximity */
+  /** Get price range for calculating proportional stem heights */
+  private getPriceRange(): number {
+    if (this.prices.length === 0) return 100;
+    let min = Infinity;
+    let max = -Infinity;
+    for (const p of this.prices) {
+      if (p.price < min) min = p.price;
+      if (p.price > max) max = p.price;
+    }
+    return max - min || 1;
+  }
+
+  /** Calculate stem heights for events using collision avoidance */
   private calculateEventStemHeights(): Map<number, number> {
-    const stemHeights = new Map<number, number>();
-    const sortedEvents = [...this.events]
-      .map((event, idx) => ({ event, idx }))
-      .sort((a, b) => a.event.date - b.event.date);
+    if (this.events.length === 0) return new Map();
 
-    sortedEvents.forEach((item, sortedIdx) => {
-      const prev = sortedEvents[sortedIdx - 1];
-      const next = sortedEvents[sortedIdx + 1];
+    const eventsWithPosition = this.events.map((event, index) => ({
+      date: event.date,
+      index,
+      basePrice: this.findPriceAtDate(event.date),
+    }));
 
-      const isCloseToPrev = prev && item.event.date - prev.event.date < CLOSE_THRESHOLD_MS;
-      const isCloseToNext = next && next.event.date - item.event.date < CLOSE_THRESHOLD_MS;
-
-      if (!isCloseToPrev && !isCloseToNext) {
-        stemHeights.set(item.idx, STEM_HEIGHTS.medium);
-      } else {
-        const prevHeight = prev ? stemHeights.get(prev.idx) : undefined;
-        stemHeights.set(
-          item.idx,
-          prevHeight === STEM_HEIGHTS.short ? STEM_HEIGHTS.long : STEM_HEIGHTS.short
-        );
-      }
-    });
-
-    return stemHeights;
+    return calculateFlagStemHeights(eventsWithPosition, this.getPriceRange());
   }
 
   /** Build events scatter series data */

@@ -1,23 +1,70 @@
+/**
+ * Base class for Highcharts-based components
+ * Provides chart lifecycle, demo mode, lazy initialization, and theme handling
+ */
+
 import { property } from 'lit/decorators.js';
 import { createRef, Ref } from 'lit/directives/ref.js';
 import type Highcharts from 'highcharts/highstock';
 import { VizBaseComponent } from './viz-base-component.js';
-import { updateHighchartsThemeDOM } from '../utils/highcharts-theme.js';
+import { PropertyWatchController } from '../core/lifecycle.js';
+import { LazyInitController } from '../core/lazy.js';
+import type { ThemeState } from '../core/theme.js';
+import {
+  applyHighchartsThemeClass,
+  getHighchartsPalette,
+  updateHighchartsThemeDOM,
+} from './viz-highcharts-theme.js';
 
 /**
- * Base class for Highcharts-based components
- * Provides common lifecycle, theme handling, and chart management
+ * Abstract base class for all Highcharts-powered components
+ * Handles chart lifecycle, property watching, lazy loading, and theming
  */
 export abstract class VizHighchartsComponent extends VizBaseComponent {
   /** Enable demo mode with sample data */
   @property({ type: Boolean })
   demo = false;
 
+  /** Enable lazy initialization (default: true) */
+  @property({ type: Boolean })
+  lazy = true;
+
   /** Highcharts chart instance */
   protected chart: Highcharts.Chart | null = null;
 
   /** Reference to chart container element */
   protected containerRef: Ref<HTMLDivElement> = createRef();
+
+  /** Property watch controller - initialized in constructor */
+  protected propertyWatcher!: PropertyWatchController;
+
+  /** Lazy init controller - initialized in constructor */
+  protected lazyInit!: LazyInitController;
+
+  /** Track if chart has been initialized */
+  private _chartInitialized = false;
+
+  constructor() {
+    super();
+
+    // Initialize property watcher
+    this.propertyWatcher = new PropertyWatchController(this, {
+      properties: this.getWatchedProperties(),
+      callback: (changed) => this.onWatchedPropertiesChange(changed),
+    });
+
+    // Initialize lazy loading controller
+    this.lazyInit = new LazyInitController(this, {
+      onVisible: () => this.onBecameVisible(),
+      rootMargin: '100px',
+    });
+  }
+
+  /**
+   * Get list of properties that should trigger chart update
+   * Override in subclasses to specify watched properties
+   */
+  protected abstract getWatchedProperties(): string[];
 
   /**
    * Load demo data - implement in subclasses
@@ -29,14 +76,8 @@ export abstract class VizHighchartsComponent extends VizBaseComponent {
    */
   protected abstract updateChart(): void;
 
-  /**
-   * Get list of properties that should trigger chart update
-   */
-  protected abstract getWatchedProperties(): string[];
-
   override connectedCallback(): void {
     super.connectedCallback();
-    this.setupThemeObserver();
     if (this.demo) {
       this.loadDemoData();
     }
@@ -45,23 +86,101 @@ export abstract class VizHighchartsComponent extends VizBaseComponent {
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.destroyChart();
-    this.cleanupThemeObserver();
   }
 
   protected override updated(changedProperties: Map<string, unknown>): void {
-    // Load demo data if demo prop changed and no data present
+    super.updated(changedProperties);
+
+    // Load demo data if demo prop changed
     if (changedProperties.has('demo') && this.demo) {
       this.loadDemoData();
     }
 
-    // Check if chart needs update based on watched properties
-    const watchedProps = this.getWatchedProperties();
-    const needsUpdate =
-      !this.chart || watchedProps.some((prop) => changedProperties.has(prop));
-
-    if (needsUpdate) {
-      this.updateChart();
+    // Check if lazy loading is disabled and we need immediate init
+    if (changedProperties.has('lazy') && !this.lazy && !this._chartInitialized) {
+      this.lazyInit.forceVisible();
     }
+
+    // Forward to property watcher
+    this.propertyWatcher.checkProperties(changedProperties);
+  }
+
+  /**
+   * Called when watched properties change
+   */
+  protected onWatchedPropertiesChange(changed: Map<string, unknown>): void {
+    // Only update chart if visible (or not lazy)
+    if (!this.lazy || this.lazyInit.hasBeenVisible) {
+      if (!this.chart || changed.size > 0) {
+        this.updateChart();
+        this._chartInitialized = true;
+      }
+    }
+  }
+
+  /**
+   * Called when component becomes visible (lazy init)
+   */
+  protected onBecameVisible(): void {
+    if (this.demo && !this.hasData()) {
+      this.loadDemoData();
+    }
+    this.updateChart();
+    this._chartInitialized = true;
+  }
+
+  /**
+   * Handle theme changes - update Highcharts theme
+   */
+  protected override onThemeChange(state: ThemeState): void {
+    super.onThemeChange(state);
+    this.updateHighchartsTheme();
+  }
+
+  /**
+   * Update Highcharts-specific theme elements
+   * Override in subclasses for custom behavior (e.g., stock charts)
+   */
+  protected updateHighchartsTheme(): void {
+    const container = this.containerRef.value;
+    if (!container) return;
+
+    // Apply theme class for CSS custom properties
+    applyHighchartsThemeClass(container, this.isDarkMode());
+
+    if (this.chart) {
+      const theme = this.getThemeColors();
+      const isDark = this.isDarkMode();
+
+      // Update chart via Highcharts API
+      this.chart.update(
+        {
+          chart: {
+            backgroundColor: theme.background,
+          },
+          tooltip: {
+            backgroundColor: theme.background,
+            style: { color: theme.text },
+          },
+        },
+        false,
+        false,
+        false
+      );
+
+      this.chart.redraw(false);
+
+      // Update remaining elements via DOM manipulation
+      updateHighchartsThemeDOM(container, theme, isDark);
+    }
+  }
+
+  /**
+   * Apply Highcharts theme class to container
+   * Convenience method for subclasses
+   */
+  protected applyHighchartsThemeClass(container: HTMLElement): void {
+    applyHighchartsThemeClass(container, this.isDarkMode());
   }
 
   /**
@@ -72,47 +191,20 @@ export abstract class VizHighchartsComponent extends VizBaseComponent {
       this.chart.destroy();
       this.chart = null;
     }
+    this._chartInitialized = false;
   }
 
   /**
-   * Default theme update for basic charts (non-stock)
-   * Uses DOM manipulation to update colors without full chart rebuild
-   */
-  protected override updateTheme(): void {
-    if (!this.chart) return;
-
-    const theme = this.getThemeColors();
-    const isDark = theme.background !== '#ffffff';
-
-    // Update chart background and tooltip via Highcharts API
-    this.chart.update(
-      {
-        chart: {
-          backgroundColor: theme.background,
-        },
-        tooltip: {
-          backgroundColor: theme.background,
-          style: { color: theme.text },
-        },
-      },
-      false,
-      false,
-      false
-    );
-
-    this.chart.redraw(false);
-
-    // Update other colors via DOM manipulation to preserve layout
-    const container = this.containerRef.value;
-    if (!container) return;
-
-    updateHighchartsThemeDOM(container, theme, isDark);
-  }
-
-  /**
-   * Check if data is empty - useful for conditional rendering
+   * Check if component has data - override in subclasses
    */
   protected hasData(): boolean {
-    return true; // Override in subclasses with specific data checks
+    return true;
+  }
+
+  /**
+   * Get Highcharts color palette from theme
+   */
+  protected getChartPalette(): string[] {
+    return getHighchartsPalette(this.getCoreThemeColors());
   }
 }

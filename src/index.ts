@@ -3,6 +3,23 @@
  * Framework-agnostic Web Components library for data visualization
  */
 
+// Export core utilities
+export {
+  // Events
+  createVizEvent,
+  emitVizEvent,
+  type EventEmitterHost,
+  // Theme
+  ThemeController,
+  getCSSProperty,
+  readThemeColors,
+  readThemePalette,
+  // Lifecycle
+  PropertyWatchController,
+  // Lazy
+  LazyInitController,
+} from './core/index.js';
+
 // Export base components
 export { VizBaseComponent } from './base/viz-base-component.js';
 export { VizHighchartsComponent } from './base/viz-highcharts-component.js';
@@ -22,6 +39,26 @@ export { VizTreemap } from './components/advanced/viz-treemap.js';
 
 // Export types
 export type {
+  // Core types
+  ThemeMode,
+  ThemeState,
+  CoreThemeColors,
+  // Event types
+  VizEventDetail,
+  VizCustomEvent,
+  PointClickData,
+  SeriesClickData,
+  ZoomData,
+  LegendToggleData,
+  SortData,
+  FilterData,
+  SelectData,
+  PageData,
+  ExpandData,
+  RefreshData,
+  ThemeChangeData,
+  VizEventName,
+  // Chart types
   ChartType,
   ChartSeries,
   ChartData,
@@ -46,6 +83,8 @@ export type {
   StockEvolutionConfig,
 } from './types/index.js';
 
+export { VizEventNames } from './types/index.js';
+
 // Export sample data generators for testing/demos
 export {
   generateHistoricalPrices,
@@ -58,6 +97,10 @@ export {
 
 // Export market event constants for customization
 export { DEFAULT_EVENT_COLORS, EVENT_TYPE_LABELS } from './utils/market-event-constants.js';
+
+// Export layout utilities
+export { calculateFlagStemHeights } from './utils/flag-layout.js';
+export type { EventWithPosition, FlagLayoutOptions } from './utils/flag-layout.js';
 
 // Library version
 export const VERSION = '0.1.0';

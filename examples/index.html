@@ -95,6 +95,58 @@
       font-size: 0.875rem;
       z-index: 100;
     }
+
+    .event-log {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      width: 400px;
+      max-height: 200px;
+      background: var(--viz-bg);
+      border: 1px solid var(--viz-primary);
+      border-radius: 8px;
+      padding: 0.5rem;
+      font-size: 0.75rem;
+      z-index: 100;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .event-log h4 {
+      margin: 0 0 0.5rem 0;
+      color: var(--viz-primary);
+      display: flex;
+      align-items: center;
+    }
+
+    .event-log ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .event-log li {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(128,128,128,0.2);
+      font-family: monospace;
+    }
+
+    .event-log .event-name {
+      color: var(--viz-accent-purple);
+      font-weight: bold;
+    }
+
+    .event-log .event-source {
+      color: var(--viz-accent-cyan);
+    }
+
+    .event-log .event-data {
+      color: var(--viz-text);
+      opacity: 0.7;
+    }
+
   </style>
 </head>
 <body>
@@ -103,6 +155,12 @@
   </button>
 
   <h1>viz-components Library Demo</h1>
+
+  <!-- Event Log Panel -->
+  <div id="eventLog" class="event-log">
+    <h4>Event Log <button onclick="document.getElementById('eventLog').querySelector('ul').innerHTML = ''" style="font-size: 0.75rem; margin-left: 1rem;">Clear</button></h4>
+    <ul></ul>
+  </div>
 
   <!-- Stock Chart Section -->
   <h2>Real-Time Stock Chart</h2>
@@ -179,10 +237,39 @@
   </div>
 
   <script type="module">
-    import { VERSION } from '../dist/index.js';
+    import { VERSION, VizEventNames } from '../dist/index.js';
     import '../dist/index.js';
 
     console.log('viz-components version:', VERSION);
+    console.log('Available events:', VizEventNames);
+
+    // Event logging helper
+    function logEvent(event) {
+      const ul = document.querySelector('#eventLog ul');
+      const li = document.createElement('li');
+      const detail = event.detail;
+
+      li.innerHTML = `
+        <span class="event-name">${event.type}</span>
+        <span class="event-source">[${detail.source}]</span>
+        <span class="event-data">${JSON.stringify(detail.data)}</span>
+      `;
+      ul.insertBefore(li, ul.firstChild);
+
+      // Keep only last 20 events
+      while (ul.children.length > 20) {
+        ul.removeChild(ul.lastChild);
+      }
+    }
+
+    // Listen for all viz events
+    document.addEventListener('viz-point-click', logEvent);
+    document.addEventListener('viz-series-click', logEvent);
+    document.addEventListener('viz-theme-change', logEvent);
+    document.addEventListener('viz-sort', logEvent);
+    document.addEventListener('viz-filter', logEvent);
+    document.addEventListener('viz-select', logEvent);
+    document.addEventListener('viz-page', logEvent);
 
     // Wait for custom elements to be defined
     await Promise.all([

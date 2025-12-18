@@ -5,7 +5,8 @@ import Highcharts from 'highcharts/highstock';
 import HighchartsAccessibility from 'highcharts/modules/accessibility';
 import { VizHighchartsComponent } from '../../base/viz-highcharts-component.js';
 import { generateChartData } from '../../utils/sample-data.js';
-import type { ChartType, ChartSeries, ChartConfig } from '../../types/index.js';
+import { VizEventNames } from '../../types/events.js';
+import type { ChartType, ChartSeries, ChartConfig, PointClickData, SeriesClickData } from '../../types/index.js';
 
 // Initialize accessibility module
 if (typeof HighchartsAccessibility === 'function') {
@@ -105,11 +106,11 @@ export class VizChart extends VizHighchartsComponent {
           cursor: 'pointer',
           point: {
             events: {
-              click: (e) => this.emitEvent('point-click', e),
+              click: (e) => this.handlePointClick(e),
             },
           },
           events: {
-            click: (e) => this.emitEvent('series-click', e),
+            click: (e) => this.handleSeriesClick(e),
           },
         },
       },
@@ -131,20 +132,29 @@ export class VizChart extends VizHighchartsComponent {
     }
   }
 
-  private emitEvent(
-    name: string,
-    e: Highcharts.PointClickEventObject | Highcharts.SeriesClickEventObject
-  ): void {
-    this.dispatchEvent(
-      new CustomEvent(name, {
-        detail: {
-          point: 'point' in e ? e.point : null,
-          series: e.target,
-        },
-        bubbles: true,
-        composed: true,
-      })
-    );
+  /**
+   * Handle point click events and emit standardized event
+   */
+  private handlePointClick(e: Highcharts.PointClickEventObject): void {
+    const data: PointClickData = {
+      seriesIndex: e.point.series.index,
+      pointIndex: e.point.index,
+      value: e.point.y,
+      category: e.point.category as string | undefined,
+    };
+    this.emitEvent(VizEventNames.POINT_CLICK, data);
+  }
+
+  /**
+   * Handle series click events and emit standardized event
+   */
+  private handleSeriesClick(e: Highcharts.SeriesClickEventObject): void {
+    const series = e.point?.series ?? (e.target as unknown as Highcharts.Series);
+    const data: SeriesClickData = {
+      seriesIndex: series.index,
+      seriesName: series.name,
+    };
+    this.emitEvent(VizEventNames.SERIES_CLICK, data);
   }
 
   protected override render() {

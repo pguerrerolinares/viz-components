@@ -2,6 +2,29 @@
  * Type definitions for viz-components library
  */
 
+// Re-export core types
+export type { ThemeMode, ThemeState, CoreThemeColors } from '../core/theme.js';
+
+// Re-export event types
+export type {
+  VizEventDetail,
+  VizCustomEvent,
+  PointClickData,
+  SeriesClickData,
+  ZoomData,
+  LegendToggleData,
+  SortData,
+  FilterData,
+  SelectData,
+  PageData,
+  ExpandData,
+  RefreshData,
+  ThemeChangeData,
+  VizEventName,
+} from './events.js';
+
+export { VizEventNames } from './events.js';
+
 // Chart types
 export type ChartType = 'line' | 'bar' | 'column' | 'pie' | 'area';
 
